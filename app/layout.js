@@ -1,3 +1,5 @@
+import Chatbot from "@/components/Chatbot";
+
 export const metadata = {
   title: "Turismo San Rafael - Antioquia",
   description: "Portal turístico de la Red Local de Turismo de San Rafael",
@@ -31,6 +33,7 @@ export default function RootLayout({ children }) {
           </nav>
         </header>
         <main style={{ maxWidth: 900, margin: "0 auto", padding: "2rem" }}>{children}</main>
+        <Chatbot />
       </body>
     </html>
   );

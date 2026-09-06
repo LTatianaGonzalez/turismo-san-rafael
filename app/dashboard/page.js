@@ -27,6 +27,7 @@ export default function DashboardPage() {
   // --- Estado de los datos de la encuesta ---
   const [respuestas, setRespuestas] = useState([]);
   const [cargandoDatos, setCargandoDatos] = useState(false);
+  const [preguntasSinResponder, setPreguntasSinResponder] = useState([]);
 
   // --- Estado de los filtros del dashboard ---
   const [fechaDesde, setFechaDesde] = useState("");
@@ -67,8 +68,24 @@ export default function DashboardPage() {
       setCargandoDatos(false);
     }
 
+    async function cargarPreguntasSinResponder() {
+      const { data, error } = await supabase
+        .from("preguntas_sin_responder")
+        .select("*")
+        .eq("atendida", false)
+        .order("creado_en", { ascending: false });
+
+      if (!error) setPreguntasSinResponder(data);
+    }
+
     cargarDatos();
+    cargarPreguntasSinResponder();
   }, [session]);
+
+  async function marcarComoAtendida(id) {
+    await supabase.from("preguntas_sin_responder").update({ atendida: true }).eq("id", id);
+    setPreguntasSinResponder((prev) => prev.filter((p) => p.id !== id));
+  }
 
   async function handleLogin(e) {
     e.preventDefault();
@@ -252,6 +269,39 @@ export default function DashboardPage() {
               <Line type="monotone" dataKey="cantidad" stroke="#0f766e" name="N° de respuestas" />
             </LineChart>
           </ResponsiveContainer>
+
+          {/* Preguntas del chatbot que no se pudieron responder automáticamente */}
+          <h2>Preguntas del chatbot sin responder ({preguntasSinResponder.length})</h2>
+          {preguntasSinResponder.length === 0 ? (
+            <p style={{ color: "#6b7280" }}>No hay preguntas pendientes. El chatbot está resolviendo todo por ahora.</p>
+          ) : (
+            <div style={{ display: "grid", gap: 8 }}>
+              {preguntasSinResponder.map((p) => (
+                <div
+                  key={p.id}
+                  style={{
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 8,
+                    padding: "0.75rem 1rem",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  <div>
+                    <p style={{ margin: 0 }}>{p.pregunta}</p>
+                    {p.correo_contacto && (
+                      <p style={{ margin: 0, fontSize: "0.8rem", color: "#6b7280" }}>
+                        Contacto: {p.correo_contacto}
+                      </p>
+                    )}
+                  </div>
+                  <button onClick={() => marcarComoAtendida(p.id)}>Marcar como atendida</button>
+                </div>
+              ))}
+            </div>
+          )}
         </>
       )}
     </section>
