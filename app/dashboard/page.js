@@ -253,7 +253,7 @@ export default function DashboardPage() {
               <YAxis domain={[0, 5]} />
               <Tooltip />
               <Legend />
-              <Bar dataKey="promedio" fill="#0f766e" name="Promedio" />
+              <Bar dataKey="promedio" fill="#1F4D3A" name="Promedio" />
             </BarChart>
           </ResponsiveContainer>
 
@@ -266,7 +266,7 @@ export default function DashboardPage() {
               <YAxis allowDecimals={false} />
               <Tooltip />
               <Legend />
-              <Line type="monotone" dataKey="cantidad" stroke="#0f766e" name="N° de respuestas" />
+              <Line type="monotone" dataKey="cantidad" stroke="#1F4D3A" name="N° de respuestas" />
             </LineChart>
           </ResponsiveContainer>
 

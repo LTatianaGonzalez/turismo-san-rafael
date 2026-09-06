@@ -108,7 +108,7 @@ export default function Chatbot() {
           }}
         >
           {/* Encabezado */}
-          <div style={{ background: "#0f766e", color: "white", padding: "0.75rem 1rem" }}>
+          <div style={{ background: "#1F4D3A", color: "white", padding: "0.75rem 1rem" }}>
             <strong>Asistente San Rafael</strong>
           </div>
 
@@ -119,7 +119,7 @@ export default function Chatbot() {
                 key={i}
                 style={{
                   alignSelf: m.autor === "bot" ? "flex-start" : "flex-end",
-                  background: m.autor === "bot" ? "#f3f4f6" : "#0f766e",
+                  background: m.autor === "bot" ? "#f3f4f6" : "#1F4D3A",
                   color: m.autor === "bot" ? "#1f2937" : "white",
                   padding: "0.5rem 0.75rem",
                   borderRadius: 10,
@@ -136,7 +136,7 @@ export default function Chatbot() {
               <form
                 onSubmit={handleGuardarPreguntaSinResponder}
                 style={{
-                  border: "1px dashed #0f766e",
+                  border: "1px dashed #1F4D3A",
                   borderRadius: 8,
                   padding: "0.6rem",
                   display: "grid",
@@ -155,7 +155,7 @@ export default function Chatbot() {
                 <button
                   type="submit"
                   style={{
-                    background: "#0f766e",
+                    background: "#1F4D3A",
                     color: "white",
                     border: "none",
                     borderRadius: 6,
@@ -177,8 +177,8 @@ export default function Chatbot() {
                   style={{
                     textAlign: "left",
                     background: "white",
-                    border: "1px solid #0f766e",
-                    color: "#0f766e",
+                    border: "1px solid #1F4D3A",
+                    color: "#1F4D3A",
                     borderRadius: 8,
                     padding: "0.4rem 0.6rem",
                     fontSize: "0.8rem",
@@ -200,7 +200,7 @@ export default function Chatbot() {
               placeholder="Escribe tu pregunta..."
               style={{ flex: 1, border: "none", padding: "0.6rem", outline: "none" }}
             />
-            <button type="submit" style={{ border: "none", background: "#0f766e", color: "white", padding: "0 1rem" }}>
+            <button type="submit" style={{ border: "none", background: "#1F4D3A", color: "white", padding: "0 1rem" }}>
               Enviar
             </button>
           </form>
@@ -214,7 +214,7 @@ export default function Chatbot() {
           width: 56,
           height: 56,
           borderRadius: "50%",
-          background: "#0f766e",
+          background: "#1F4D3A",
           color: "white",
           border: "none",
           fontSize: "1.5rem",
