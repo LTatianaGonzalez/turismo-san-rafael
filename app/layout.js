@@ -25,6 +25,9 @@ export default function RootLayout({ children }) {
             <a href="/encuesta" style={{ color: "white", textDecoration: "none" }}>
               Encuesta de visitante
             </a>
+            <a href="/dashboard" style={{ color: "white", textDecoration: "none" }}>
+              Administración
+            </a>
           </nav>
         </header>
         <main style={{ maxWidth: 900, margin: "0 auto", padding: "2rem" }}>{children}</main>
