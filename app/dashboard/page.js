@@ -28,6 +28,11 @@ export default function DashboardPage() {
   const [respuestas, setRespuestas] = useState([]);
   const [cargandoDatos, setCargandoDatos] = useState(false);
 
+  // --- Estado de los filtros del dashboard ---
+  const [fechaDesde, setFechaDesde] = useState("");
+  const [fechaHasta, setFechaHasta] = useState("");
+  const [tipoTurista, setTipoTurista] = useState("todos");
+
   // Al cargar la página, revisamos si ya hay una sesión activa
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -107,12 +112,30 @@ export default function DashboardPage() {
   }
 
   // --- Si SÍ hay sesión: mostrar el dashboard ---
-  const totalRespuestas = respuestas.length;
+
+  // Aplicamos los 3 filtros (fecha desde, fecha hasta, tipo de turista)
+  // sobre el arreglo completo de respuestas que ya trajimos de Supabase.
+  const respuestasFiltradas = respuestas.filter((r) => {
+    const fechaRespuesta = new Date(r.creado_en);
+
+    if (fechaDesde && fechaRespuesta < new Date(fechaDesde)) return false;
+    if (fechaHasta) {
+      // Sumamos un día a "hasta" para que incluya todo ese día completo
+      const hasta = new Date(fechaHasta);
+      hasta.setDate(hasta.getDate() + 1);
+      if (fechaRespuesta >= hasta) return false;
+    }
+    if (tipoTurista !== "todos" && r.tipo_turista !== tipoTurista) return false;
+
+    return true;
+  });
+
+  const totalRespuestas = respuestasFiltradas.length;
 
   const promedio = (campo) =>
     totalRespuestas === 0
       ? 0
-      : respuestas.reduce((suma, r) => suma + Number(r[campo] || 0), 0) / totalRespuestas;
+      : respuestasFiltradas.reduce((suma, r) => suma + Number(r[campo] || 0), 0) / totalRespuestas;
 
   const gastoPromedio = promedio("gasto_promedio").toFixed(0);
   const diasPromedio = promedio("dias_estadia").toFixed(1);
@@ -127,7 +150,7 @@ export default function DashboardPage() {
 
   // Datos para el gráfico de línea: cantidad de respuestas por día
   const conteoPorFecha = {};
-  respuestas.forEach((r) => {
+  respuestasFiltradas.forEach((r) => {
     const fecha = new Date(r.creado_en).toLocaleDateString("es-CO");
     conteoPorFecha[fecha] = (conteoPorFecha[fecha] || 0) + 1;
   });
@@ -143,10 +166,58 @@ export default function DashboardPage() {
         <button onClick={handleLogout}>Cerrar sesión</button>
       </div>
 
+      {/* Barra de filtros */}
+      <div
+        style={{
+          display: "flex",
+          gap: "1rem",
+          flexWrap: "wrap",
+          alignItems: "flex-end",
+          background: "#f9fafb",
+          padding: "1rem",
+          borderRadius: 8,
+          margin: "1rem 0",
+        }}
+      >
+        <label>
+          Desde
+          <br />
+          <input type="date" value={fechaDesde} onChange={(e) => setFechaDesde(e.target.value)} />
+        </label>
+
+        <label>
+          Hasta
+          <br />
+          <input type="date" value={fechaHasta} onChange={(e) => setFechaHasta(e.target.value)} />
+        </label>
+
+        <label>
+          Tipo de turista
+          <br />
+          <select value={tipoTurista} onChange={(e) => setTipoTurista(e.target.value)}>
+            <option value="todos">Todos</option>
+            <option value="nacional">Nacional</option>
+            <option value="extranjero">Extranjero</option>
+          </select>
+        </label>
+
+        <button
+          onClick={() => {
+            setFechaDesde("");
+            setFechaHasta("");
+            setTipoTurista("todos");
+          }}
+        >
+          Limpiar filtros
+        </button>
+      </div>
+
       {cargandoDatos ? (
         <p>Cargando datos...</p>
-      ) : totalRespuestas === 0 ? (
+      ) : respuestas.length === 0 ? (
         <p>Todavía no hay respuestas registradas. Comparte el enlace de la encuesta.</p>
+      ) : totalRespuestas === 0 ? (
+        <p>No hay respuestas que coincidan con los filtros seleccionados.</p>
       ) : (
         <>
           {/* Tarjetas KPI */}
