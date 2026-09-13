@@ -1,85 +1,99 @@
+import { novedades } from "@/lib/novedades";
+import { actividades } from "@/lib/actividades";
+
 export default function HomePage() {
+  const destacada = novedades.find((n) => n.destacada) || novedades[0];
+  const experiencias = actividades.slice(0, 3);
+
   return (
     <div>
-      {/* Hero */}
-      <section className="hero">
-        <div>
-          <h1>San Rafael, un territorio único por naturaleza</h1>
+      <section className="hero hero--home">
+        <div className="hero__contenido">
+          <span className="eyebrow">San Rafael · Antioquia</span>
+          <h1>Descubre un territorio único por naturaleza.</h1>
           <p>
-            Montañas, ríos y una comunidad campesina que ha hecho del turismo una forma de
-            cuidar su tierra. Descubre un destino donde la aventura, la naturaleza y la
-            cultura se encuentran.
+            Ríos, montañas, biodiversidad, cultura y experiencias comunitarias.
+            Encuentra todo lo que necesitas para vivir San Rafael.
           </p>
           <div className="hero__acciones">
-            <a href="/experiencias" className="boton boton-primario">
-              Ver qué hacer
-            </a>
-            <a href="/encuesta" className="boton boton-secundario">
-              Cuéntanos tu experiencia
-            </a>
+            <a href="/descubre" className="boton boton-primario">Explorar San Rafael</a>
+            <a href="/hospedajes" className="boton boton-secundario">Buscar hospedaje</a>
           </div>
         </div>
-
-        {/* Ilustración de curvas de nivel, evocando las montañas del territorio */}
-        <svg viewBox="0 0 300 240" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <path d="M10 210 Q 80 140, 150 170 T 290 130" stroke="#1F4D3A" strokeWidth="2" opacity="0.5" />
-          <path d="M10 180 Q 80 110, 150 140 T 290 100" stroke="#1F4D3A" strokeWidth="2" opacity="0.6" />
-          <path d="M10 150 Q 80 80, 150 110 T 290 70" stroke="#1F4D3A" strokeWidth="2" opacity="0.75" />
-          <path d="M10 120 Q 80 50, 150 80 T 290 40" stroke="#C99A2E" strokeWidth="2.5" opacity="0.9" />
-          <path d="M10 90 Q 80 20, 150 50 T 290 10" stroke="#1F4D3A" strokeWidth="2" />
-        </svg>
+        <div className="hero__visual" aria-label="San Rafael, destino de naturaleza">
+          <div className="hero__badge">Naturaleza · Aventura · Comunidad</div>
+          <div className="hero__circulo">SAN<br />RAFAEL</div>
+        </div>
       </section>
 
-      {/* Cifras de biodiversidad, estilo bitácora de campo */}
-      <section className="cifras">
-        <Cifra numero="350" texto="Especies de aves" />
-        <Cifra numero="40" texto="Especies de anfibios" />
-        <Cifra numero="41" texto="Especies de reptiles" />
-        <Cifra numero="36" texto="Especies de mamíferos" />
+      <section className="buscador-turistico">
+        <div>
+          <span className="eyebrow">Planifica tu visita</span>
+          <h2>¿Qué quieres encontrar en San Rafael?</h2>
+        </div>
+        <div className="buscador-turistico__acciones">
+          <a href="/descubre" className="tarjeta-mini">🗺️ <strong>Descubrir lugares</strong><span>Ríos, cascadas, cultura y más</span></a>
+          <a href="/experiencias" className="tarjeta-mini">🌿 <strong>Vivir experiencias</strong><span>Aventura, naturaleza y comunidad</span></a>
+          <a href="/hospedajes" className="tarjeta-mini">🏡 <strong>Encontrar hospedaje</strong><span>Consulta opciones y reserva</span></a>
+        </div>
       </section>
 
-      {/* Categorías de turismo */}
-      <section style={{ margin: "2rem 0" }}>
-        <h2>Tres formas de vivir San Rafael</h2>
+      <section className="seccion">
+        <div className="seccion__cabecera">
+          <div>
+            <span className="eyebrow">Lo nuevo del territorio</span>
+            <h2>Novedades</h2>
+          </div>
+          <a href="/novedades">Ver todas →</a>
+        </div>
+
+        {destacada && (
+          <article className="novedad-destacada">
+            <div className="novedad-destacada__imagen">
+              <span>{destacada.categoria}</span>
+            </div>
+            <div className="novedad-destacada__contenido">
+              <span className="chip">{destacada.etiqueta}</span>
+              <h3>{destacada.titulo}</h3>
+              <p>{destacada.resumen}</p>
+              <a className="boton boton-primario" href={`/novedades/${destacada.slug}`}>Conocer la experiencia</a>
+            </div>
+          </article>
+        )}
+      </section>
+
+      <section className="seccion seccion--suave">
+        <div className="seccion__cabecera">
+          <div>
+            <span className="eyebrow">Vive el territorio</span>
+            <h2>Experiencias para descubrir</h2>
+          </div>
+          <a href="/experiencias">Ver experiencias →</a>
+        </div>
         <div className="grid-tarjetas">
-          <div className="tarjeta tarjeta--aventura">
-            <h3>Turismo de Aventura</h3>
-            <p>Canyoning, tubing, senderismo y mucho más para quienes buscan adrenalina.</p>
-          </div>
-          <div className="tarjeta tarjeta--eco">
-            <h3>Ecoturismo</h3>
-            <p>Avistamiento de aves, senderos ecológicos y experiencias con la naturaleza.</p>
-          </div>
-          <div className="tarjeta tarjeta--agro">
-            <h3>Agroturismo</h3>
-            <p>Cacao, panela y café: conoce de cerca la producción local del territorio.</p>
-          </div>
+          {experiencias.map((a) => (
+            <article key={a.id} className="tarjeta">
+              <span className="chip">{a.categoria}</span>
+              <h3>{a.nombre}</h3>
+              <p>{a.descripcion}</p>
+            </article>
+          ))}
         </div>
-        <p style={{ marginTop: "1rem" }}>
-          <a href="/experiencias">Ver todas las actividades →</a>
-        </p>
       </section>
 
-      {/* Turismo comunitario */}
-      <section style={{ margin: "2rem 0" }}>
-        <h2>Turismo comunitario, desde el año 2010</h2>
-        <p>
-          La Red Local de Turismo trabaja junto a la comunidad para que cada visita fortalezca
-          el territorio en lo económico, lo social y lo ambiental.
-        </p>
-        <p>
-          <a href="/la-red">Conoce más sobre la Red →</a>
-        </p>
+      <section className="seccion">
+        <div className="bloque-sostenibilidad">
+          <div>
+            <span className="eyebrow">Nuestro compromiso</span>
+            <h2>Turismo que fortalece el territorio</h2>
+            <p>
+              Conoce cómo el turismo puede aportar al desarrollo económico,
+              social y ambiental de San Rafael.
+            </p>
+          </div>
+          <a href="/sostenibilidad" className="boton boton-primario">Conoce nuestro enfoque</a>
+        </div>
       </section>
-    </div>
-  );
-}
-
-function Cifra({ numero, texto }) {
-  return (
-    <div>
-      <p className="cifra__numero">{numero}</p>
-      <p className="cifra__texto">{texto}</p>
     </div>
   );
 }
