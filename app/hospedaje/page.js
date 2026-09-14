@@ -1,182 +1,234 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { useState } from "react";
+
+const fotosYakutour = [
+  "/alojamientos/yakutour/yakutour-1.jpeg",
+  "/alojamientos/yakutour/yakutour-2.jpeg",
+  "/alojamientos/yakutour/yakutour-3.jpeg",
+];
+
+const whatsappYakutour =
+  "https://api.whatsapp.com/send?phone=573153058261&text=Hola!%20Gracias%20por%20comunicarte%20con%20Yakutour.%20En%20qu%C3%A9%20puedo%20ayudarte%3F";
 
 export default function HospedajePage() {
-  const [hoteles, setHoteles] = useState([]);
-  const [cargando, setCargando] = useState(true);
-  const [hotelAbierto, setHotelAbierto] = useState(null);
-
-  useEffect(() => {
-    async function cargarHoteles() {
-      const { data, error } = await supabase
-        .from("hoteles")
-        .select("*")
-        .eq("activo", true)
-        .order("creado_en", { ascending: true });
-
-      if (!error) setHoteles(data);
-      setCargando(false);
-    }
-    cargarHoteles();
-  }, []);
+  const [fotoPrincipal, setFotoPrincipal] = useState(fotosYakutour[0]);
 
   return (
-    <section>
-      <h1>Dónde hospedarte en San Rafael</h1>
-      <p>
-        Estas son las opciones de hospedaje de nuestra comunidad. Envía tu solicitud de
-        reserva y el hospedaje te confirmará disponibilidad directamente.
-      </p>
+    <main className="ficha-alojamiento">
 
-      {cargando ? (
-        <p>Cargando hospedajes...</p>
-      ) : hoteles.length === 0 ? (
-        <p>Todavía no hay hospedajes registrados. Vuelve pronto.</p>
-      ) : (
-        <div className="grid-tarjetas">
-          {hoteles.map((hotel) => (
-            <TarjetaHotel
-              key={hotel.id}
-              hotel={hotel}
-              abierto={hotelAbierto === hotel.id}
-              onAbrir={() => setHotelAbierto(hotelAbierto === hotel.id ? null : hotel.id)}
-            />
-          ))}
+      {/* ENCABEZADO */}
+      <section className="ficha-encabezado">
+        <div>
+          <span className="eyebrow">Alojamiento rural</span>
+
+          <h1>Yakutour</h1>
+
+          <p className="ficha-ubicacion">
+            📍 San Rafael, Antioquia
+          </p>
         </div>
-      )}
-    </section>
-  );
-}
+      </section>
 
-function TarjetaHotel({ hotel, abierto, onAbrir }) {
-  const [form, setForm] = useState({
-    nombre_huesped: "",
-    correo_huesped: "",
-    telefono_huesped: "",
-    fecha_entrada: "",
-    fecha_salida: "",
-    numero_personas: 1,
-  });
-  const [enviando, setEnviando] = useState(false);
-  const [enviado, setEnviado] = useState(false);
-  const [error, setError] = useState(null);
+      {/* GALERÍA DE FOTOGRAFÍAS */}
+      <section className="galeria-ficha">
 
-  function handleChange(e) {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-  }
-
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setEnviando(true);
-    setError(null);
-
-    const { error } = await supabase.from("reservas").insert([
-      {
-        hotel_id: hotel.id,
-        nombre_huesped: form.nombre_huesped,
-        correo_huesped: form.correo_huesped,
-        telefono_huesped: form.telefono_huesped,
-        fecha_entrada: form.fecha_entrada,
-        fecha_salida: form.fecha_salida,
-        numero_personas: Number(form.numero_personas),
-      },
-    ]);
-
-    setEnviando(false);
-
-    if (error) {
-      console.error(error);
-      setError("Ocurrió un error al enviar tu solicitud. Intenta de nuevo.");
-    } else {
-      setEnviado(true);
-    }
-  }
-
-  return (
-    <div className="tarjeta tarjeta--agro">
-      <h3>{hotel.nombre}</h3>
-      {hotel.descripcion && <p>{hotel.descripcion}</p>}
-      <p style={{ fontSize: "0.9rem" }}>
-        {hotel.precio_por_noche && <>💰 ${hotel.precio_por_noche} / noche &nbsp;</>}
-        {hotel.capacidad_personas && <>👥 hasta {hotel.capacidad_personas} personas</>}
-      </p>
-
-      {!abierto && (
-        <button className="boton boton-primario" onClick={onAbrir}>
-          Solicitar reserva
-        </button>
-      )}
-
-      {abierto && !enviado && (
-        <form onSubmit={handleSubmit} style={{ display: "grid", gap: "0.6rem", marginTop: "0.75rem" }}>
-          <input
-            type="text"
-            name="nombre_huesped"
-            placeholder="Tu nombre completo"
-            value={form.nombre_huesped}
-            onChange={handleChange}
-            required
+        <div className="foto-principal">
+          <img
+            src={fotoPrincipal}
+            alt="Yakutour - alojamiento rural en San Rafael"
           />
-          <input
-            type="email"
-            name="correo_huesped"
-            placeholder="Tu correo"
-            value={form.correo_huesped}
-            onChange={handleChange}
-          />
-          <input
-            type="tel"
-            name="telefono_huesped"
-            placeholder="Tu teléfono"
-            value={form.telefono_huesped}
-            onChange={handleChange}
-          />
-          <label style={{ fontSize: "0.8rem" }}>
-            Fecha de entrada
-            <input
-              type="date"
-              name="fecha_entrada"
-              value={form.fecha_entrada}
-              onChange={handleChange}
-              required
-            />
-          </label>
-          <label style={{ fontSize: "0.8rem" }}>
-            Fecha de salida
-            <input
-              type="date"
-              name="fecha_salida"
-              value={form.fecha_salida}
-              onChange={handleChange}
-              required
-            />
-          </label>
-          <label style={{ fontSize: "0.8rem" }}>
-            Número de personas
-            <input
-              type="number"
-              name="numero_personas"
-              min="1"
-              value={form.numero_personas}
-              onChange={handleChange}
-              required
-            />
-          </label>
-          <button type="submit" className="boton boton-primario" disabled={enviando}>
-            {enviando ? "Enviando..." : "Enviar solicitud"}
-          </button>
-          {error && <p style={{ color: "crimson", fontSize: "0.85rem" }}>{error}</p>}
-        </form>
-      )}
+        </div>
 
-      {enviado && (
-        <p style={{ color: "#1F4D3A", fontWeight: 600 }}>
-          ¡Solicitud enviada! El hospedaje se pondrá en contacto contigo para confirmar.
-        </p>
-      )}
-    </div>
+        <div className="fotos-secundarias">
+
+          {fotosYakutour.map((foto, index) => (
+            <button
+              key={foto}
+              type="button"
+              onClick={() => setFotoPrincipal(foto)}
+              className={`miniatura ${
+                foto === fotoPrincipal ? "miniatura-activa" : ""
+              }`}
+            >
+              <img
+                src={foto}
+                alt={`Yakutour - fotografía ${index + 1}`}
+              />
+            </button>
+          ))}
+
+        </div>
+
+      </section>
+
+      {/* INFORMACIÓN PRINCIPAL */}
+      <section className="ficha-contenido">
+
+        <div className="ficha-descripcion">
+
+          <span className="eyebrow">
+            Turismo y naturaleza
+          </span>
+
+          <h2>Una experiencia para conectar con San Rafael</h2>
+
+          <p>
+            Yakutour es una opción de alojamiento y turismo rural
+            ubicada en San Rafael, Antioquia. Su entorno permite
+            disfrutar de la naturaleza, descansar y vivir experiencias
+            relacionadas con el territorio.
+          </p>
+
+          <p>
+            Consulta directamente con Yakutour la disponibilidad,
+            tarifas y actividades disponibles para las fechas de
+            tu visita.
+          </p>
+
+          {/* CARACTERÍSTICAS */}
+          <div className="caracteristicas-alojamiento">
+
+            <div className="caracteristica">
+              <span>🌿</span>
+              <strong>Naturaleza</strong>
+              <small>Entorno rural</small>
+            </div>
+
+            <div className="caracteristica">
+              <span>🏡</span>
+              <strong>Alojamiento</strong>
+              <small>Hospedaje</small>
+            </div>
+
+            <div className="caracteristica">
+              <span>💧</span>
+              <strong>Experiencias</strong>
+              <small>Turismo de naturaleza</small>
+            </div>
+
+          </div>
+
+        </div>
+
+        {/* CONTACTO */}
+        <aside className="ficha-contacto">
+
+          <h3>Contacta con Yakutour</h3>
+
+          <p>
+            Consulta directamente con el alojamiento sobre
+            disponibilidad, precios y experiencias.
+          </p>
+
+          {/* INSTAGRAM */}
+          <a
+            href="https://www.instagram.com/hosteria_yakutour/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="boton-contacto boton-instagram"
+          >
+            📸 Instagram
+          </a>
+
+          {/* WHATSAPP */}
+          <a
+            href={whatsappYakutour}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="boton-contacto boton-whatsapp"
+          >
+            💬 WhatsApp
+          </a>
+
+          {/* MAPA */}
+          <a
+            href="https://www.google.com/maps/search/?api=1&query=Yakutour+San+Rafael+Antioquia"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="boton-contacto boton-mapa"
+          >
+            🗺️ Cómo llegar
+          </a>
+
+          {/* SITIO WEB */}
+          <div className="sitio-web-no-disponible">
+            <span>🌐 Sitio web</span>
+
+            <small>
+              Información próximamente disponible
+            </small>
+          </div>
+
+        </aside>
+
+      </section>
+
+      {/* UBICACIÓN */}
+      <section className="ubicacion-ficha">
+
+        <div className="ubicacion-texto">
+
+          <span className="eyebrow">
+            Ubicación
+          </span>
+
+          <h2>Encuentra Yakutour</h2>
+
+          <p>
+            Consulta la ubicación de Yakutour y planifica tu
+            recorrido desde el casco urbano de San Rafael.
+          </p>
+
+          <div className="datos-ruta">
+
+            <div>
+              <strong>📍 Origen</strong>
+              <span>Parque principal de San Rafael</span>
+            </div>
+
+            <div>
+              <strong>🏡 Destino</strong>
+              <span>Yakutour</span>
+            </div>
+
+            <div>
+              <strong>🚗 Distancia</strong>
+              <span>Por calcular</span>
+            </div>
+
+            <div>
+              <strong>⏱️ Tiempo aproximado</strong>
+              <span>Por calcular</span>
+            </div>
+
+          </div>
+
+          <a
+            href="https://www.google.com/maps/search/?api=1&query=Yakutour+San+Rafael+Antioquia"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="boton boton-primario boton-ruta"
+          >
+            Abrir ubicación en Google Maps
+          </a>
+
+        </div>
+
+        {/* MAPA */}
+        <div className="mapa-contenedor">
+
+          <iframe
+            title="Ubicación de Yakutour en San Rafael"
+            src="https://www.google.com/maps?q=Yakutour%20San%20Rafael%20Antioquia&output=embed"
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+          />
+
+        </div>
+
+      </section>
+
+    </main>
   );
 }

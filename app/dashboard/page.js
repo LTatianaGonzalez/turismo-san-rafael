@@ -3,24 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-} from "recharts";
-
 export default function DashboardPage() {
-  // ============================================================
-  // SESIÓN
-  // ============================================================
-
   const [session, setSession] = useState(null);
   const [cargandoSesion, setCargandoSesion] = useState(true);
 
@@ -28,77 +11,60 @@ export default function DashboardPage() {
   const [password, setPassword] = useState("");
   const [errorLogin, setErrorLogin] = useState(null);
 
-  // ============================================================
-  // ENCUESTAS
-  // ============================================================
-
   const [respuestas, setRespuestas] = useState([]);
+  const [preguntasSinResponder, setPreguntasSinResponder] = useState([]);
   const [cargandoDatos, setCargandoDatos] = useState(false);
 
   const [fechaDesde, setFechaDesde] = useState("");
   const [fechaHasta, setFechaHasta] = useState("");
   const [tipoTurista, setTipoTurista] = useState("todos");
 
-  // ============================================================
-  // CHATBOT
-  // ============================================================
-
-  const [preguntasSinResponder, setPreguntasSinResponder] = useState([]);
-
-  // ============================================================
-  // ALOJAMIENTOS
-  // ============================================================
-
   const [hoteles, setHoteles] = useState([]);
   const [reservas, setReservas] = useState([]);
 
   const [nuevoHotel, setNuevoHotel] = useState({
     nombre: "",
-    categoria: "Alojamiento",
-    entorno: "rural",
-    ubicacion: "",
+    categoria: "Alojamiento rural",
     descripcion: "",
+    descripcion_larga: "",
+    ubicacion: "",
     instagram_url: "",
     whatsapp_url: "",
-    web_url: "",
-    reserva_url: "",
-    latitud: "",
-    longitud: "",
-    destacado: false,
+    servicios: "",
+    imagenes: "",
+    indicaciones: "",
+    precio_por_noche: "",
+    capacidad_personas: "",
   });
 
   const [guardandoHotel, setGuardandoHotel] = useState(false);
   const [mensajeHotel, setMensajeHotel] = useState(null);
-  const [errorHotel, setErrorHotel] = useState(null);
+  const [hotelEditando, setHotelEditando] = useState(null);
 
-  // ============================================================
-  // COMPROBAR SESIÓN
-  // ============================================================
+  /* ============================================================
+     SESIÓN
+     ============================================================ */
 
   useEffect(() => {
-    async function revisarSesion() {
-      const { data } = await supabase.auth.getSession();
-
+    supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setCargandoSesion(false);
-    }
-
-    revisarSesion();
+    });
 
     const {
-      data: { subscription },
+      data: listener,
     } = supabase.auth.onAuthStateChange((_event, nuevaSesion) => {
       setSession(nuevaSesion);
     });
 
     return () => {
-      subscription.unsubscribe();
+      listener.subscription.unsubscribe();
     };
   }, []);
 
-  // ============================================================
-  // CARGAR INFORMACIÓN DEL DASHBOARD
-  // ============================================================
+  /* ============================================================
+     CARGAR DATOS
+     ============================================================ */
 
   useEffect(() => {
     if (!session) return;
@@ -106,88 +72,30 @@ export default function DashboardPage() {
     async function cargarDatos() {
       setCargandoDatos(true);
 
-      // ----------------------------------------------------------
-      // ENCUESTAS
-      // ----------------------------------------------------------
-
-      const { data: respuestasData, error: respuestasError } =
+      const { data: respuestasData, error: errorRespuestas } =
         await supabase
           .from("respuestas_encuesta")
           .select("*")
           .order("creado_en", { ascending: true });
 
-      if (respuestasError) {
-        console.error(
-          "Error cargando respuestas:",
-          respuestasError
-        );
-      } else {
+      if (!errorRespuestas) {
         setRespuestas(respuestasData || []);
       }
 
-      // ----------------------------------------------------------
-      // PREGUNTAS DEL CHATBOT
-      // ----------------------------------------------------------
-
       const {
         data: preguntasData,
-        error: preguntasError,
+        error: errorPreguntas,
       } = await supabase
         .from("preguntas_sin_responder")
         .select("*")
         .eq("atendida", false)
         .order("creado_en", { ascending: false });
 
-      if (preguntasError) {
-        console.error(
-          "Error cargando preguntas:",
-          preguntasError
-        );
-      } else {
+      if (!errorPreguntas) {
         setPreguntasSinResponder(preguntasData || []);
       }
 
-      // ----------------------------------------------------------
-      // ALOJAMIENTOS
-      // ----------------------------------------------------------
-
-      const {
-        data: hotelesData,
-        error: hotelesError,
-      } = await supabase
-        .from("hoteles")
-        .select("*")
-        .order("creado_en", { ascending: true });
-
-      if (hotelesError) {
-        console.error(
-          "Error cargando alojamientos:",
-          hotelesError
-        );
-      } else {
-        setHoteles(hotelesData || []);
-      }
-
-      // ----------------------------------------------------------
-      // RESERVAS
-      // ----------------------------------------------------------
-
-      const {
-        data: reservasData,
-        error: reservasError,
-      } = await supabase
-        .from("reservas")
-        .select("*")
-        .order("creado_en", { ascending: false });
-
-      if (reservasError) {
-        console.error(
-          "Error cargando reservas:",
-          reservasError
-        );
-      } else {
-        setReservas(reservasData || []);
-      }
+      await cargarHotelesYReservas();
 
       setCargandoDatos(false);
     }
@@ -195,104 +103,58 @@ export default function DashboardPage() {
     cargarDatos();
   }, [session]);
 
-  // ============================================================
-  // CREAR ALOJAMIENTO
-  // ============================================================
-
-  async function handleCrearHotel(e) {
-    e.preventDefault();
-
-    setGuardandoHotel(true);
-    setMensajeHotel(null);
-    setErrorHotel(null);
-
+  async function cargarHotelesYReservas() {
     const {
-      data,
-      error,
+      data: hotelesData,
+      error: errorHoteles,
     } = await supabase
       .from("hoteles")
-      .insert([
-        {
-          nombre: nuevoHotel.nombre.trim(),
-          categoria: nuevoHotel.categoria,
-          entorno: nuevoHotel.entorno,
-          ubicacion: nuevoHotel.ubicacion.trim(),
-          descripcion: nuevoHotel.descripcion.trim(),
+      .select("*")
+      .order("creado_en", { ascending: true });
 
-          instagram_url:
-            nuevoHotel.instagram_url.trim() || null,
-
-          whatsapp_url:
-            nuevoHotel.whatsapp_url.trim() || null,
-
-          web_url:
-            nuevoHotel.web_url.trim() || null,
-
-          reserva_url:
-            nuevoHotel.reserva_url.trim() || null,
-
-          latitud:
-            nuevoHotel.latitud !== ""
-              ? Number(nuevoHotel.latitud)
-              : null,
-
-          longitud:
-            nuevoHotel.longitud !== ""
-              ? Number(nuevoHotel.longitud)
-              : null,
-
-          destacado: nuevoHotel.destacado,
-
-          // El alojamiento estará visible
-          activo: true,
-
-          // Lo dejamos pendiente hasta verificarlo
-          estado_verificacion: "pendiente",
-        },
-      ])
-      .select()
-      .single();
-
-    setGuardandoHotel(false);
-
-    if (error) {
-      console.error("Error guardando alojamiento:", error);
-
-      setErrorHotel(
-        "No se pudo guardar el alojamiento: " +
-          error.message
-      );
-
-      return;
+    if (!errorHoteles) {
+      setHoteles(hotelesData || []);
     }
 
-    if (data) {
-      setHoteles((prev) => [...prev, data]);
+    const {
+      data: reservasData,
+      error: errorReservas,
+    } = await supabase
+      .from("reservas")
+      .select("*")
+      .order("creado_en", { ascending: false });
 
-      setNuevoHotel({
-        nombre: "",
-        categoria: "Alojamiento",
-        entorno: "rural",
-        ubicacion: "",
-        descripcion: "",
-        instagram_url: "",
-        whatsapp_url: "",
-        web_url: "",
-        reserva_url: "",
-        latitud: "",
-        longitud: "",
-        destacado: false,
-      });
-
-      setMensajeHotel(
-        "¡Alojamiento agregado correctamente!"
-      );
+    if (!errorReservas) {
+      setReservas(reservasData || []);
     }
   }
 
-  // ============================================================
-  // MARCAR PREGUNTA COMO ATENDIDA
-  // ============================================================
+  /* ============================================================
+     LOGIN
+     ============================================================ */
+
+  async function handleLogin(e) {
+    e.preventDefault();
+
+    setErrorLogin(null);
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      setErrorLogin("Correo o contraseña incorrectos.");
+    }
+  }
+
+  async function handleLogout() {
+    await supabase.auth.signOut();
+  }
+
+  /* ============================================================
+     CHATBOT
+     ============================================================ */
 
   async function marcarComoAtendida(id) {
     const { error } = await supabase
@@ -300,93 +162,217 @@ export default function DashboardPage() {
       .update({ atendida: true })
       .eq("id", id);
 
+    if (!error) {
+      setPreguntasSinResponder((prev) =>
+        prev.filter((p) => p.id !== id)
+      );
+    }
+  }
+
+  /* ============================================================
+     FORMULARIO HOTEL
+     ============================================================ */
+
+  function handleHotelChange(e) {
+    const { name, value } = e.target;
+
+    setNuevoHotel((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  }
+
+  function prepararNuevoHotel() {
+    setHotelEditando(null);
+
+    setNuevoHotel({
+      nombre: "",
+      categoria: "Alojamiento rural",
+      descripcion: "",
+      descripcion_larga: "",
+      ubicacion: "",
+      instagram_url: "",
+      whatsapp_url: "",
+      servicios: "",
+      imagenes: "",
+      indicaciones: "",
+      precio_por_noche: "",
+      capacidad_personas: "",
+    });
+
+    setMensajeHotel(null);
+  }
+
+  function prepararEdicion(hotel) {
+    setHotelEditando(hotel);
+
+    setNuevoHotel({
+      nombre: hotel.nombre || "",
+      categoria: hotel.categoria || "Alojamiento rural",
+      descripcion: hotel.descripcion || "",
+      descripcion_larga: hotel.descripcion_larga || "",
+      ubicacion: hotel.ubicacion || "",
+      instagram_url: hotel.instagram_url || "",
+      whatsapp_url: hotel.whatsapp_url || "",
+      servicios: Array.isArray(hotel.servicios)
+        ? hotel.servicios.join("\n")
+        : "",
+      imagenes: Array.isArray(hotel.imagenes)
+        ? hotel.imagenes.join("\n")
+        : "",
+      indicaciones: hotel.indicaciones || "",
+      precio_por_noche: hotel.precio_por_noche || "",
+      capacidad_personas: hotel.capacidad_personas || "",
+    });
+
+    setMensajeHotel(null);
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  }
+
+  function convertirLista(texto) {
+    return texto
+      .split("\n")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  async function handleGuardarHotel(e) {
+    e.preventDefault();
+
+    setGuardandoHotel(true);
+    setMensajeHotel(null);
+
+    const datosHotel = {
+      nombre: nuevoHotel.nombre.trim(),
+      categoria: nuevoHotel.categoria,
+      descripcion: nuevoHotel.descripcion.trim(),
+      descripcion_larga: nuevoHotel.descripcion_larga.trim(),
+      ubicacion: nuevoHotel.ubicacion.trim(),
+      instagram_url: nuevoHotel.instagram_url.trim() || null,
+      whatsapp_url: nuevoHotel.whatsapp_url.trim() || null,
+      servicios: convertirLista(nuevoHotel.servicios),
+      imagenes: convertirLista(nuevoHotel.imagenes),
+      indicaciones: nuevoHotel.indicaciones.trim(),
+      precio_por_noche:
+        nuevoHotel.precio_por_noche !== ""
+          ? Number(nuevoHotel.precio_por_noche)
+          : null,
+      capacidad_personas:
+        nuevoHotel.capacidad_personas !== ""
+          ? Number(nuevoHotel.capacidad_personas)
+          : null,
+    };
+
+    let resultado;
+
+    if (hotelEditando) {
+      resultado = await supabase
+        .from("hoteles")
+        .update(datosHotel)
+        .eq("id", hotelEditando.id)
+        .select();
+    } else {
+      resultado = await supabase
+        .from("hoteles")
+        .insert([datosHotel])
+        .select();
+    }
+
+    const { data, error } = resultado;
+
+    setGuardandoHotel(false);
+
+    if (error) {
+      console.error(error);
+
+      setMensajeHotel(
+        `No se pudo guardar el hospedaje: ${error.message}`
+      );
+
+      return;
+    }
+
+    if (hotelEditando) {
+      setHoteles((prev) =>
+        prev.map((hotel) =>
+          hotel.id === hotelEditando.id
+            ? data[0]
+            : hotel
+        )
+      );
+
+      setMensajeHotel("Alojamiento actualizado correctamente.");
+    } else {
+      setHoteles((prev) => [...prev, ...data]);
+
+      setMensajeHotel("Alojamiento agregado correctamente.");
+    }
+
+    prepararNuevoHotel();
+  }
+
+  /* ============================================================
+     ACTIVAR / DESACTIVAR
+     ============================================================ */
+
+  async function cambiarActivoHotel(hotel) {
+    const nuevoEstado = !hotel.activo;
+
+    const { error } = await supabase
+      .from("hoteles")
+      .update({ activo: nuevoEstado })
+      .eq("id", hotel.id);
+
     if (error) {
       console.error(error);
       return;
     }
 
-    setPreguntasSinResponder((prev) =>
-      prev.filter((p) => p.id !== id)
+    setHoteles((prev) =>
+      prev.map((h) =>
+        h.id === hotel.id
+          ? { ...h, activo: nuevoEstado }
+          : h
+      )
     );
   }
 
-  // ============================================================
-  // ACTUALIZAR ESTADO DE RESERVA
-  // ============================================================
+  /* ============================================================
+     RESERVAS
+     ============================================================ */
 
-  async function actualizarEstadoReserva(
-    id,
-    nuevoEstado
-  ) {
+  async function actualizarEstadoReserva(id, nuevoEstado) {
     const { error } = await supabase
       .from("reservas")
       .update({ estado: nuevoEstado })
       .eq("id", id);
 
-    if (error) {
-      console.error(
-        "Error actualizando reserva:",
-        error
-      );
-      return;
-    }
-
-    setReservas((prev) =>
-      prev.map((r) =>
-        r.id === id
-          ? { ...r, estado: nuevoEstado }
-          : r
-      )
-    );
-  }
-
-  // ============================================================
-  // LOGIN
-  // ============================================================
-
-  async function handleLogin(e) {
-    e.preventDefault();
-
-    setErrorLogin(null);
-
-    const { error } =
-      await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-    if (error) {
-      console.error(error);
-
-      setErrorLogin(
-        "Correo o contraseña incorrectos."
+    if (!error) {
+      setReservas((prev) =>
+        prev.map((r) =>
+          r.id === id
+            ? { ...r, estado: nuevoEstado }
+            : r
+        )
       );
     }
   }
 
-  // ============================================================
-  // LOGOUT
-  // ============================================================
-
-  async function handleLogout() {
-    await supabase.auth.signOut();
-  }
-
-  // ============================================================
-  // CARGANDO SESIÓN
-  // ============================================================
+  /* ============================================================
+     SESIÓN CARGANDO
+     ============================================================ */
 
   if (cargandoSesion) {
-    return (
-      <section>
-        <p>Cargando panel...</p>
-      </section>
-    );
+    return <p>Cargando...</p>;
   }
 
-  // ============================================================
-  // LOGIN
-  // ============================================================
+  /* ============================================================
+     LOGIN
+     ============================================================ */
 
   if (!session) {
     return (
@@ -398,11 +384,6 @@ export default function DashboardPage() {
       >
         <h1>Panel de administración</h1>
 
-        <p>
-          Ingresa con tu cuenta para administrar
-          la información turística.
-        </p>
-
         <form
           onSubmit={handleLogin}
           style={{
@@ -412,6 +393,7 @@ export default function DashboardPage() {
         >
           <label>
             Correo
+
             <input
               type="email"
               value={email}
@@ -424,6 +406,7 @@ export default function DashboardPage() {
 
           <label>
             Contraseña
+
             <input
               type="password"
               value={password}
@@ -448,62 +431,51 @@ export default function DashboardPage() {
     );
   }
 
-  // ============================================================
-  // FILTROS DE ENCUESTAS
-  // ============================================================
+  /* ============================================================
+     FILTROS ENCUESTA
+     ============================================================ */
 
-  const respuestasFiltradas =
-    respuestas.filter((r) => {
-      const fechaRespuesta =
-        new Date(r.creado_en);
+  const respuestasFiltradas = respuestas.filter((r) => {
+    const fechaRespuesta = new Date(r.creado_en);
 
-      if (
-        fechaDesde &&
-        fechaRespuesta < new Date(fechaDesde)
-      ) {
+    if (
+      fechaDesde &&
+      fechaRespuesta < new Date(fechaDesde)
+    ) {
+      return false;
+    }
+
+    if (fechaHasta) {
+      const hasta = new Date(fechaHasta);
+
+      hasta.setDate(hasta.getDate() + 1);
+
+      if (fechaRespuesta >= hasta) {
         return false;
       }
+    }
 
-      if (fechaHasta) {
-        const hasta = new Date(fechaHasta);
+    if (
+      tipoTurista !== "todos" &&
+      r.tipo_turista !== tipoTurista
+    ) {
+      return false;
+    }
 
-        hasta.setDate(hasta.getDate() + 1);
-
-        if (fechaRespuesta >= hasta) {
-          return false;
-        }
-      }
-
-      if (
-        tipoTurista !== "todos" &&
-        r.tipo_turista !== tipoTurista
-      ) {
-        return false;
-      }
-
-      return true;
-    });
+    return true;
+  });
 
   const totalRespuestas =
     respuestasFiltradas.length;
 
-  // ============================================================
-  // PROMEDIOS
-  // ============================================================
-
-  const promedio = (campo) => {
-    if (totalRespuestas === 0) {
-      return 0;
-    }
-
-    return (
-      respuestasFiltradas.reduce(
-        (suma, r) =>
-          suma + Number(r[campo] || 0),
-        0
-      ) / totalRespuestas
-    );
-  };
+  const promedio = (campo) =>
+    totalRespuestas === 0
+      ? 0
+      : respuestasFiltradas.reduce(
+          (suma, r) =>
+            suma + Number(r[campo] || 0),
+          0
+        ) / totalRespuestas;
 
   const gastoPromedio =
     promedio("gasto_promedio").toFixed(0);
@@ -511,76 +483,14 @@ export default function DashboardPage() {
   const diasPromedio =
     promedio("dias_estadia").toFixed(1);
 
-  // ============================================================
-  // GRÁFICO DE INDICADORES
-  // ============================================================
-
-  const datosIndicadores = [
-    {
-      indicador: "Seguridad",
-      promedio: Number(
-        promedio(
-          "percepcion_seguridad"
-        ).toFixed(2)
-      ),
-    },
-    {
-      indicador: "Interacción",
-      promedio: Number(
-        promedio(
-          "interaccion_comunidad"
-        ).toFixed(2)
-      ),
-    },
-    {
-      indicador: "Ambiental",
-      promedio: Number(
-        promedio(
-          "percepcion_ambiental"
-        ).toFixed(2)
-      ),
-    },
-    {
-      indicador: "Buenas prácticas",
-      promedio: Number(
-        promedio(
-          "conocimiento_buenas_practicas"
-        ).toFixed(2)
-      ),
-    },
-  ];
-
-  // ============================================================
-  // GRÁFICO DE RESPUESTAS POR FECHA
-  // ============================================================
-
-  const conteoPorFecha = {};
-
-  respuestasFiltradas.forEach((r) => {
-    const fecha = new Date(
-      r.creado_en
-    ).toLocaleDateString("es-CO");
-
-    conteoPorFecha[fecha] =
-      (conteoPorFecha[fecha] || 0) + 1;
-  });
-
-  const datosPorFecha = Object.entries(
-    conteoPorFecha
-  ).map(([fecha, cantidad]) => ({
-    fecha,
-    cantidad,
-  }));
-
-  // ============================================================
-  // RENDER
-  // ============================================================
+  /* ============================================================
+     RENDER
+     ============================================================ */
 
   return (
     <section>
-      {/* ======================================================
-          ENCABEZADO
-      ====================================================== */}
+
+      {/* ENCABEZADO */}
 
       <div
         style={{
@@ -592,12 +502,11 @@ export default function DashboardPage() {
         }}
       >
         <div>
-          <h1>Panel de administración</h1>
+          <span className="eyebrow">
+            Administración
+          </span>
 
-          <p>
-            Gestión de información turística
-            de San Rafael.
-          </p>
+          <h1>Panel de administración</h1>
         </div>
 
         <button onClick={handleLogout}>
@@ -607,37 +516,29 @@ export default function DashboardPage() {
 
       {/* ======================================================
           ENCUESTAS
-      ====================================================== */}
+          ====================================================== */}
 
       <hr
         style={{
           margin: "2rem 0",
           border: "none",
-          borderTop:
-            "1px solid #e5e7eb",
+          borderTop: "1px solid #e5e7eb",
         }}
       />
 
-      <h2>Monitoreo turístico</h2>
-
-      {/* FILTROS */}
+      <h2>Indicadores de encuesta</h2>
 
       <div
         style={{
           display: "flex",
           gap: "1rem",
           flexWrap: "wrap",
-          alignItems: "flex-end",
-          background: "#f9fafb",
-          padding: "1rem",
-          borderRadius: 8,
           margin: "1rem 0",
         }}
       >
         <label>
           Desde
           <br />
-
           <input
             type="date"
             value={fechaDesde}
@@ -650,7 +551,6 @@ export default function DashboardPage() {
         <label>
           Hasta
           <br />
-
           <input
             type="date"
             value={fechaHasta}
@@ -695,147 +595,33 @@ export default function DashboardPage() {
         </button>
       </div>
 
-      {cargandoDatos ? (
-        <p>Cargando información...</p>
-      ) : respuestas.length === 0 ? (
-        <p>
-          Todavía no hay respuestas registradas.
-        </p>
-      ) : totalRespuestas === 0 ? (
-        <p>
-          No hay respuestas que coincidan
-          con los filtros.
-        </p>
-      ) : (
-        <>
-          {/* KPI */}
+      <div
+        style={{
+          display: "flex",
+          gap: "1rem",
+          flexWrap: "wrap",
+          margin: "1.5rem 0",
+        }}
+      >
+        <TarjetaKPI
+          titulo="Encuestas"
+          valor={totalRespuestas}
+        />
 
-          <div
-            style={{
-              display: "flex",
-              gap: "1rem",
-              margin: "1.5rem 0",
-              flexWrap: "wrap",
-            }}
-          >
-            <TarjetaKPI
-              titulo="Encuestas respondidas"
-              valor={totalRespuestas}
-            />
+        <TarjetaKPI
+          titulo="Gasto promedio"
+          valor={`$${gastoPromedio}`}
+        />
 
-            <TarjetaKPI
-              titulo="Gasto promedio"
-              valor={`$${gastoPromedio}`}
-            />
-
-            <TarjetaKPI
-              titulo="Días de estadía"
-              valor={diasPromedio}
-            />
-          </div>
-
-          {/* GRÁFICO INDICADORES */}
-
-          <h2>
-            Percepción por indicador
-          </h2>
-
-          <p>
-            Escala de 1 a 5 según las
-            respuestas de los turistas.
-          </p>
-
-          <div
-            style={{
-              width: "100%",
-              height: 300,
-            }}
-          >
-            <ResponsiveContainer
-              width="100%"
-              height="100%"
-            >
-              <BarChart
-                data={datosIndicadores}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-
-                <XAxis
-                  dataKey="indicador"
-                />
-
-                <YAxis domain={[0, 5]} />
-
-                <Tooltip />
-
-                <Legend />
-
-                <Bar
-                  dataKey="promedio"
-                  fill="#1F4D3A"
-                  name="Promedio"
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* GRÁFICO RESPUESTAS */}
-
-          <h2>
-            Respuestas recibidas por día
-          </h2>
-
-          <div
-            style={{
-              width: "100%",
-              height: 300,
-            }}
-          >
-            <ResponsiveContainer
-              width="100%"
-              height="100%"
-            >
-              <LineChart
-                data={datosPorFecha}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-
-                <XAxis
-                  dataKey="fecha"
-                />
-
-                <YAxis
-                  allowDecimals={false}
-                />
-
-                <Tooltip />
-
-                <Legend />
-
-                <Line
-                  type="monotone"
-                  dataKey="cantidad"
-                  stroke="#1F4D3A"
-                  name="N° de respuestas"
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </>
-      )}
+        <TarjetaKPI
+          titulo="Días promedio"
+          valor={diasPromedio}
+        />
+      </div>
 
       {/* ======================================================
           CHATBOT
-      ====================================================== */}
-
-      <hr
-        style={{
-          margin: "2rem 0",
-          border: "none",
-          borderTop:
-            "1px solid #e5e7eb",
-        }}
-      />
+          ====================================================== */}
 
       <h2>
         Preguntas del chatbot sin responder (
@@ -843,13 +629,8 @@ export default function DashboardPage() {
         )
       </h2>
 
-      {preguntasSinResponder.length ===
-      0 ? (
-        <p
-          style={{
-            color: "#6b7280",
-          }}
-        >
+      {preguntasSinResponder.length === 0 ? (
+        <p style={{ color: "#6b7280" }}>
           No hay preguntas pendientes.
         </p>
       ) : (
@@ -859,487 +640,276 @@ export default function DashboardPage() {
             gap: 8,
           }}
         >
-          {preguntasSinResponder.map(
-            (p) => (
-              <div
-                key={p.id}
-                style={{
-                  border:
-                    "1px solid #e5e7eb",
-                  borderRadius: 8,
-                  padding:
-                    "0.75rem 1rem",
-                  display: "flex",
-                  justifyContent:
-                    "space-between",
-                  alignItems: "center",
-                  gap: 8,
-                  flexWrap: "wrap",
-                }}
-              >
-                <div>
+          {preguntasSinResponder.map((p) => (
+            <div
+              key={p.id}
+              style={{
+                border: "1px solid #e5e7eb",
+                borderRadius: 8,
+                padding: "1rem",
+                display: "flex",
+                justifyContent:
+                  "space-between",
+                gap: 1,
+                flexWrap: "wrap",
+              }}
+            >
+              <div>
+                <strong>{p.pregunta}</strong>
+
+                {p.correo_contacto && (
                   <p
                     style={{
-                      margin: 0,
+                      fontSize: "0.85rem",
+                      color: "#6b7280",
                     }}
                   >
-                    {p.pregunta}
+                    {p.correo_contacto}
                   </p>
-
-                  {p.correo_contacto && (
-                    <p
-                      style={{
-                        margin: 0,
-                        fontSize:
-                          "0.8rem",
-                        color:
-                          "#6b7280",
-                      }}
-                    >
-                      Contacto:{" "}
-                      {
-                        p.correo_contacto
-                      }
-                    </p>
-                  )}
-                </div>
-
-                <button
-                  onClick={() =>
-                    marcarComoAtendida(
-                      p.id
-                    )
-                  }
-                >
-                  Marcar como atendida
-                </button>
+                )}
               </div>
-            )
-          )}
+
+              <button
+                onClick={() =>
+                  marcarComoAtendida(p.id)
+                }
+              >
+                Marcar como atendida
+              </button>
+            </div>
+          ))}
         </div>
       )}
 
       {/* ======================================================
           ALOJAMIENTOS
-      ====================================================== */}
+          ====================================================== */}
 
       <hr
         style={{
           margin: "2rem 0",
           border: "none",
-          borderTop:
-            "1px solid #e5e7eb",
+          borderTop: "1px solid #e5e7eb",
         }}
       />
-
-      <h2>
-        Alojamientos
-      </h2>
 
       <div
         style={{
           display: "flex",
+          justifyContent:
+            "space-between",
+          alignItems: "center",
           gap: "1rem",
-          margin: "1rem 0",
           flexWrap: "wrap",
         }}
       >
-        <TarjetaKPI
-          titulo="Alojamientos registrados"
-          valor={hoteles.length}
-        />
+        <div>
+          <span className="eyebrow">
+            Oferta turística
+          </span>
 
-        <TarjetaKPI
-          titulo="Solicitudes pendientes"
-          valor={
-            reservas.filter(
-              (r) =>
-                r.estado ===
-                "pendiente"
-            ).length
-          }
-        />
+          <h2>
+            Alojamientos ({hoteles.length})
+          </h2>
+        </div>
 
-        <TarjetaKPI
-          titulo="Reservas confirmadas"
-          valor={
-            reservas.filter(
-              (r) =>
-                r.estado ===
-                "confirmada"
-            ).length
-          }
-        />
+        <button
+          className="boton boton-primario"
+          onClick={prepararNuevoHotel}
+        >
+          + Nuevo alojamiento
+        </button>
       </div>
 
-      {/* ======================================================
-          FORMULARIO NUEVO ALOJAMIENTO
-      ====================================================== */}
+      {/* FORMULARIO */}
 
       <div
         style={{
-          background: "#f9fafb",
-          padding: "1.25rem",
-          borderRadius: 10,
-          maxWidth: 650,
-          marginTop: "1.5rem",
+          background: "#f7f9f6",
+          padding: "1.5rem",
+          borderRadius: 14,
+          margin: "1.5rem 0",
         }}
       >
         <h3>
-          Agregar un nuevo alojamiento
+          {hotelEditando
+            ? "Editar alojamiento"
+            : "Agregar alojamiento"}
         </h3>
 
-        <p
-          style={{
-            color: "#6b7280",
-            fontSize: "0.9rem",
-          }}
-        >
-          Registra aquí la información
-          pública que posteriormente
-          aparecerá en la página de
-          alojamientos.
-        </p>
-
         <form
-          onSubmit={handleCrearHotel}
+          onSubmit={handleGuardarHotel}
           style={{
             display: "grid",
             gap: "0.8rem",
+            maxWidth: 650,
           }}
         >
-          {/* NOMBRE */}
 
-          <label>
-            Nombre del alojamiento
+          <input
+            name="nombre"
+            placeholder="Nombre del alojamiento"
+            value={nuevoHotel.nombre}
+            onChange={handleHotelChange}
+            required
+          />
 
-            <input
-              type="text"
-              placeholder="Ej. Hostería Yakutour"
-              value={
-                nuevoHotel.nombre
-              }
-              onChange={(e) =>
-                setNuevoHotel({
-                  ...nuevoHotel,
-                  nombre:
-                    e.target.value,
-                })
-              }
-              required
-            />
-          </label>
+          <select
+            name="categoria"
+            value={nuevoHotel.categoria}
+            onChange={handleHotelChange}
+          >
+            <option>
+              Alojamiento rural
+            </option>
 
-          {/* CATEGORÍA */}
+            <option>
+              Alojamiento urbano
+            </option>
 
-          <label>
-            Categoría
+            <option>
+              Hostería
+            </option>
 
-            <select
-              value={
-                nuevoHotel.categoria
-              }
-              onChange={(e) =>
-                setNuevoHotel({
-                  ...nuevoHotel,
-                  categoria:
-                    e.target.value,
-                })
-              }
-            >
-              <option value="Alojamiento">
-                Alojamiento
-              </option>
+            <option>
+              Finca turística
+            </option>
 
-              <option value="Hotel">
-                Hotel
-              </option>
+            <option>
+              Hotel
+            </option>
 
-              <option value="Hostería">
-                Hostería
-              </option>
+            <option>
+              Posada
+            </option>
 
-              <option value="Hostal">
-                Hostal
-              </option>
+            <option>
+              Cabaña
+            </option>
 
-              <option value="Cabaña">
-                Cabaña
-              </option>
+            <option>
+              Otro
+            </option>
+          </select>
 
-              <option value="Finca">
-                Finca
-              </option>
+          <textarea
+            name="descripcion"
+            placeholder="Descripción corta"
+            value={nuevoHotel.descripcion}
+            onChange={handleHotelChange}
+            rows={3}
+          />
 
-              <option value="Glamping">
-                Glamping
-              </option>
+          <textarea
+            name="descripcion_larga"
+            placeholder="Descripción completa"
+            value={nuevoHotel.descripcion_larga}
+            onChange={handleHotelChange}
+            rows={5}
+          />
 
-              <option value="Ecohotel">
-                Ecohotel
-              </option>
+          <input
+            name="ubicacion"
+            placeholder="Ubicación / vereda / sector"
+            value={nuevoHotel.ubicacion}
+            onChange={handleHotelChange}
+          />
 
-              <option value="Casa campestre">
-                Casa campestre
-              </option>
+          <input
+            name="instagram_url"
+            type="url"
+            placeholder="Enlace de Instagram"
+            value={nuevoHotel.instagram_url}
+            onChange={handleHotelChange}
+          />
 
-              <option value="Otro">
-                Otro
-              </option>
-            </select>
-          </label>
+          <input
+            name="whatsapp_url"
+            type="url"
+            placeholder="Enlace directo de WhatsApp"
+            value={nuevoHotel.whatsapp_url}
+            onChange={handleHotelChange}
+          />
 
-          {/* ENTORNO */}
+          <textarea
+            name="servicios"
+            placeholder={"Servicios, uno por línea\nEjemplo:\nAlojamiento\nPiscina\nSenderismo\nAlimentación"}
+            value={nuevoHotel.servicios}
+            onChange={handleHotelChange}
+            rows={5}
+          />
 
-          <label>
-            Tipo de entorno
+          <textarea
+            name="imagenes"
+            placeholder={"Rutas de imágenes, una por línea\nEjemplo:\n/alojamientos/yakutour/yakutour-1.jpg\n/alojamientos/yakutour/yakutour-2.jpg"}
+            value={nuevoHotel.imagenes}
+            onChange={handleHotelChange}
+            rows={5}
+          />
 
-            <select
-              value={
-                nuevoHotel.entorno
-              }
-              onChange={(e) =>
-                setNuevoHotel({
-                  ...nuevoHotel,
-                  entorno:
-                    e.target.value,
-                })
-              }
-            >
-              <option value="rural">
-                Rural
-              </option>
+          <textarea
+            name="indicaciones"
+            placeholder="Indicaciones para llegar"
+            value={nuevoHotel.indicaciones}
+            onChange={handleHotelChange}
+            rows={3}
+          />
 
-              <option value="urbano">
-                Urbano
-              </option>
-            </select>
-          </label>
+          <input
+            name="precio_por_noche"
+            type="number"
+            min="0"
+            placeholder="Precio por noche (si aplica)"
+            value={nuevoHotel.precio_por_noche}
+            onChange={handleHotelChange}
+          />
 
-          {/* UBICACIÓN */}
-
-          <label>
-            Ubicación
-
-            <input
-              type="text"
-              placeholder="Ej. Vereda La Rápida"
-              value={
-                nuevoHotel.ubicacion
-              }
-              onChange={(e) =>
-                setNuevoHotel({
-                  ...nuevoHotel,
-                  ubicacion:
-                    e.target.value,
-                })
-              }
-            />
-          </label>
-
-          {/* DESCRIPCIÓN */}
-
-          <label>
-            Descripción
-
-            <textarea
-              placeholder="Describe brevemente el alojamiento y lo que ofrece..."
-              value={
-                nuevoHotel.descripcion
-              }
-              onChange={(e) =>
-                setNuevoHotel({
-                  ...nuevoHotel,
-                  descripcion:
-                    e.target.value,
-                })
-              }
-              rows={4}
-            />
-          </label>
-
-          {/* INSTAGRAM */}
-
-          <label>
-            Instagram
-
-            <input
-              type="url"
-              placeholder="https://instagram.com/..."
-              value={
-                nuevoHotel.instagram_url
-              }
-              onChange={(e) =>
-                setNuevoHotel({
-                  ...nuevoHotel,
-                  instagram_url:
-                    e.target.value,
-                })
-              }
-            />
-          </label>
-
-          {/* WHATSAPP */}
-
-          <label>
-            WhatsApp
-
-            <input
-              type="url"
-              placeholder="Enlace directo de WhatsApp"
-              value={
-                nuevoHotel.whatsapp_url
-              }
-              onChange={(e) =>
-                setNuevoHotel({
-                  ...nuevoHotel,
-                  whatsapp_url:
-                    e.target.value,
-                })
-              }
-            />
-          </label>
-
-          {/* WEB */}
-
-          <label>
-            Sitio web
-
-            <input
-              type="url"
-              placeholder="https://..."
-              value={
-                nuevoHotel.web_url
-              }
-              onChange={(e) =>
-                setNuevoHotel({
-                  ...nuevoHotel,
-                  web_url:
-                    e.target.value,
-                })
-              }
-            />
-          </label>
-
-          {/* RESERVA */}
-
-          <label>
-            Enlace de reserva
-
-            <input
-              type="url"
-              placeholder="https://..."
-              value={
-                nuevoHotel.reserva_url
-              }
-              onChange={(e) =>
-                setNuevoHotel({
-                  ...nuevoHotel,
-                  reserva_url:
-                    e.target.value,
-                })
-              }
-            />
-          </label>
-
-          {/* COORDENADAS */}
+          <input
+            name="capacidad_personas"
+            type="number"
+            min="1"
+            placeholder="Capacidad de personas"
+            value={nuevoHotel.capacidad_personas}
+            onChange={handleHotelChange}
+          />
 
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns:
-                "1fr 1fr",
-              gap: "0.8rem",
-            }}
-          >
-            <label>
-              Latitud
-
-              <input
-                type="number"
-                step="any"
-                placeholder="Ej. 6.293"
-                value={
-                  nuevoHotel.latitud
-                }
-                onChange={(e) =>
-                  setNuevoHotel({
-                    ...nuevoHotel,
-                    latitud:
-                      e.target.value,
-                  })
-                }
-              />
-            </label>
-
-            <label>
-              Longitud
-
-              <input
-                type="number"
-                step="any"
-                placeholder="Ej. -75.021"
-                value={
-                  nuevoHotel.longitud
-                }
-                onChange={(e) =>
-                  setNuevoHotel({
-                    ...nuevoHotel,
-                    longitud:
-                      e.target.value,
-                  })
-                }
-              />
-            </label>
-          </div>
-
-          {/* DESTACADO */}
-
-          <label
-            style={{
               display: "flex",
-              alignItems: "center",
-              gap: "0.5rem",
+              gap: "0.75rem",
+              flexWrap: "wrap",
             }}
           >
-            <input
-              type="checkbox"
-              checked={
-                nuevoHotel.destacado
-              }
-              onChange={(e) =>
-                setNuevoHotel({
-                  ...nuevoHotel,
-                  destacado:
-                    e.target.checked,
-                })
-              }
-            />
+            <button
+              type="submit"
+              className="boton boton-primario"
+              disabled={guardandoHotel}
+            >
+              {guardandoHotel
+                ? "Guardando..."
+                : hotelEditando
+                ? "Guardar cambios"
+                : "Agregar alojamiento"}
+            </button>
 
-            Mostrar como alojamiento
-            destacado
-          </label>
-
-          {/* BOTÓN */}
-
-          <button
-            type="submit"
-            className="boton boton-primario"
-            disabled={
-              guardandoHotel
-            }
-          >
-            {guardandoHotel
-              ? "Guardando..."
-              : "Agregar alojamiento"}
-          </button>
-
-          {/* MENSAJE ÉXITO */}
+            {hotelEditando && (
+              <button
+                type="button"
+                onClick={prepararNuevoHotel}
+              >
+                Cancelar edición
+              </button>
+            )}
+          </div>
 
           {mensajeHotel && (
             <p
               style={{
-                color: "#1F4D3A",
+                color: mensajeHotel.startsWith(
+                  "No se pudo"
+                )
+                  ? "crimson"
+                  : "#1F4D3A",
                 fontWeight: 600,
               }}
             >
@@ -1347,158 +917,116 @@ export default function DashboardPage() {
             </p>
           )}
 
-          {/* MENSAJE ERROR */}
-
-          {errorHotel && (
-            <p
-              style={{
-                color: "crimson",
-                fontWeight: 600,
-              }}
-            >
-              {errorHotel}
-            </p>
-          )}
         </form>
       </div>
 
-      {/* ======================================================
-          LISTADO DE ALOJAMIENTOS
-      ====================================================== */}
+      {/* LISTADO DE ALOJAMIENTOS */}
 
-      <h3
+      <div
         style={{
-          marginTop: "2rem",
+          display: "grid",
+          gap: "1rem",
         }}
       >
-        Alojamientos registrados (
-        {hoteles.length})
-      </h3>
-
-      {hoteles.length === 0 ? (
-        <p
-          style={{
-            color: "#6b7280",
-          }}
-        >
-          Todavía no hay alojamientos
-          registrados.
-        </p>
-      ) : (
-        <div
-          style={{
-            display: "grid",
-            gap: 10,
-          }}
-        >
-          {hoteles.map((hotel) => (
-            <div
-              key={hotel.id}
-              style={{
-                border:
-                  "1px solid #e5e7eb",
-                borderRadius: 10,
-                padding:
-                  "1rem",
-              }}
-            >
-              <h4
-                style={{
-                  margin:
-                    "0 0 0.3rem",
-                }}
-              >
+        {hoteles.map((hotel) => (
+          <div
+            key={hotel.id}
+            style={{
+              border: "1px solid #e5e7eb",
+              borderRadius: 12,
+              padding: "1rem",
+              display: "flex",
+              justifyContent:
+                "space-between",
+              gap: "1rem",
+              flexWrap: "wrap",
+            }}
+          >
+            <div>
+              <strong>
                 {hotel.nombre}
-              </h4>
+              </strong>
 
               <p
                 style={{
-                  margin: 0,
+                  margin: "0.3rem 0",
                   color: "#6b7280",
                 }}
               >
                 {hotel.categoria ||
-                  "Alojamiento"}{" "}
-                ·{" "}
-                {hotel.entorno ||
-                  "sin definir"}
+                  "Alojamiento"}
+                {" · "}
+                {hotel.ubicacion ||
+                  "San Rafael"}
               </p>
 
-              {hotel.ubicacion && (
-                <p
-                  style={{
-                    margin:
-                      "0.3rem 0 0",
-                  }}
-                >
-                  📍{" "}
-                  {
-                    hotel.ubicacion
-                  }
-                </p>
-              )}
-
-              {hotel.instagram_url && (
-                <p
-                  style={{
-                    margin:
-                      "0.3rem 0 0",
-                    fontSize:
-                      "0.85rem",
-                  }}
-                >
-                  📷 Instagram
-                  registrado
-                </p>
-              )}
-
-              {hotel.destacado && (
-                <span
-                  style={{
-                    display:
-                      "inline-block",
-                    marginTop:
-                      "0.5rem",
-                    fontSize:
-                      "0.8rem",
-                    fontWeight:
-                      600,
-                  }}
-                >
-                  ⭐ Destacado
-                </span>
-              )}
+              <small>
+                Estado:{" "}
+                {hotel.activo
+                  ? "Activo"
+                  : "Oculto"}
+              </small>
             </div>
-          ))}
-        </div>
-      )}
+
+            <div
+              style={{
+                display: "flex",
+                gap: "0.5rem",
+                flexWrap: "wrap",
+              }}
+            >
+              <a
+                href={`/hospedaje?id=${hotel.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="boton"
+              >
+                Ver ficha
+              </a>
+
+              <button
+                onClick={() =>
+                  prepararEdicion(hotel)
+                }
+              >
+                Editar
+              </button>
+
+              <button
+                onClick={() =>
+                  cambiarActivoHotel(hotel)
+                }
+              >
+                {hotel.activo
+                  ? "Ocultar"
+                  : "Activar"}
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
 
       {/* ======================================================
           RESERVAS
-      ====================================================== */}
+          ====================================================== */}
 
       <hr
         style={{
           margin: "2rem 0",
           border: "none",
-          borderTop:
-            "1px solid #e5e7eb",
+          borderTop: "1px solid #e5e7eb",
         }}
       />
 
       <h2>
         Solicitudes de reserva (
-        {reservas.length})
+        {reservas.length}
+        )
       </h2>
 
       {reservas.length === 0 ? (
-        <p
-          style={{
-            color: "#6b7280",
-          }}
-        >
-          Todavía no hay solicitudes
-          de reserva.
+        <p style={{ color: "#6b7280" }}>
+          Todavía no hay solicitudes de reserva.
         </p>
       ) : (
         <div
@@ -1508,12 +1036,10 @@ export default function DashboardPage() {
           }}
         >
           {reservas.map((r) => {
-            const hotel =
-              hoteles.find(
-                (h) =>
-                  h.id ===
-                  r.hotel_id
-              );
+
+            const hotel = hoteles.find(
+              (h) => h.id === r.hotel_id
+            );
 
             return (
               <div
@@ -1522,92 +1048,57 @@ export default function DashboardPage() {
                   border:
                     "1px solid #e5e7eb",
                   borderRadius: 8,
-                  padding:
-                    "0.75rem 1rem",
+                  padding: "1rem",
                   display: "flex",
                   justifyContent:
                     "space-between",
-                  alignItems:
-                    "center",
+                  alignItems: "center",
                   gap: 8,
-                  flexWrap:
-                    "wrap",
+                  flexWrap: "wrap",
                 }}
               >
                 <div>
-                  <p
-                    style={{
-                      margin: 0,
-                      fontWeight:
-                        600,
-                    }}
-                  >
+
+                  <strong>
                     {hotel
                       ? hotel.nombre
-                      : "Hospedaje eliminado"}{" "}
-                    —{" "}
-                    {
-                      r.nombre_huesped
-                    }
-                  </p>
+                      : "Hospedaje eliminado"}
+                    {" — "}
+                    {r.nombre_huesped}
+                  </strong>
 
                   <p
                     style={{
-                      margin: 0,
-                      fontSize:
-                        "0.8rem",
-                      color:
-                        "#6b7280",
+                      margin: "0.3rem 0",
+                      fontSize: "0.85rem",
+                      color: "#6b7280",
                     }}
                   >
-                    {
-                      r.fecha_entrada
-                    }{" "}
-                    a{" "}
-                    {
-                      r.fecha_salida
-                    }{" "}
-                    ·{" "}
-                    {
-                      r.numero_personas
-                    }{" "}
-                    persona(s)
+                    {r.fecha_entrada} a{" "}
+                    {r.fecha_salida}
+                    {" · "}
+                    {r.numero_personas}
+                    {" persona(s)"}
                   </p>
 
                   <p
                     style={{
                       margin: 0,
-                      fontSize:
-                        "0.8rem",
-                    }}
-                  >
-                    Contacto:{" "}
-                    {r.correo_huesped ||
-                      r.telefono_huesped ||
-                      "sin contacto"}
-                  </p>
-
-                  <p
-                    style={{
-                      margin: 0,
-                      fontSize:
-                        "0.8rem",
+                      fontSize: "0.85rem",
                     }}
                   >
                     Estado:{" "}
                     <strong>
-                      {r.estado ||
-                        "pendiente"}
+                      {r.estado}
                     </strong>
                   </p>
+
                 </div>
 
-                {r.estado ===
-                  "pendiente" && (
+                {r.estado === "pendiente" && (
                   <div
                     style={{
-                      display:
-                        "flex",
+                      display: "flex",
                       gap: 6,
                     }}
                   >
@@ -1639,35 +1130,32 @@ export default function DashboardPage() {
           })}
         </div>
       )}
+
     </section>
   );
 }
 
-// ============================================================
-// COMPONENTE KPI
-// ============================================================
 
-function TarjetaKPI({
-  titulo,
-  valor,
-}) {
+/* ============================================================
+   KPI
+   ============================================================ */
+
+function TarjetaKPI({ titulo, valor }) {
   return (
     <div
       style={{
-        border:
-          "1px solid #e5e7eb",
-        borderRadius: 8,
-        padding:
-          "1rem 1.5rem",
+        border: "1px solid #e5e7eb",
+        borderRadius: 10,
+        padding: "1rem 1.5rem",
         minWidth: 160,
+        background: "white",
       }}
     >
       <p
         style={{
           margin: 0,
           color: "#6b7280",
-          fontSize:
-            "0.85rem",
+          fontSize: "0.85rem",
         }}
       >
         {titulo}
@@ -1676,10 +1164,8 @@ function TarjetaKPI({
       <p
         style={{
           margin: 0,
-          fontSize:
-            "1.5rem",
-          fontWeight:
-            "bold",
+          fontSize: "1.5rem",
+          fontWeight: "bold",
         }}
       >
         {valor}

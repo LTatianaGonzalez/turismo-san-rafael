@@ -15,7 +15,20 @@ export default function HospedajesPage() {
 
       const { data, error } = await supabase
         .from("hoteles")
-        .select("*")
+        .select(`
+          id,
+          nombre,
+          slug,
+          tipo_alojamiento,
+          descripcion,
+          descripcion_corta,
+          imagen_url,
+          instagram_url,
+          whatsapp_url,
+          sitio_web_url,
+          mapa_url,
+          activo
+        `)
         .eq("activo", true)
         .order("creado_en", { ascending: true });
 
@@ -50,6 +63,7 @@ export default function HospedajesPage() {
 
   return (
     <section className="pagina">
+
       {/* ENCABEZADO */}
       <section className="pagina__intro">
         <span className="eyebrow">Dónde hospedarte</span>
@@ -57,9 +71,9 @@ export default function HospedajesPage() {
         <h1>Alojamientos en San Rafael</h1>
 
         <p>
-          Encuentra opciones de alojamiento rural y urbano para disfrutar
-          de San Rafael. Consulta cada lugar, conoce sus servicios y
-          contacta directamente con el prestador.
+          Encuentra alojamientos rurales y urbanos para disfrutar
+          de San Rafael. Conoce cada lugar, descubre sus características
+          y contacta directamente con el prestador.
         </p>
       </section>
 
@@ -74,6 +88,7 @@ export default function HospedajesPage() {
       {alojamientos.length === 0 ? (
         <div className="tarjeta">
           <h2>Próximamente</h2>
+
           <p>
             Estamos incorporando nuevas opciones de alojamiento
             en San Rafael.
@@ -95,126 +110,177 @@ export default function HospedajesPage() {
 
 
 /* ============================================================
-   FICHA DE ALOJAMIENTO
+   TARJETA DE ALOJAMIENTO
    ============================================================ */
 
 function FichaAlojamiento({ alojamiento }) {
+
+  /*
+   * Yakutour utiliza por ahora las fotografías reales
+   * almacenadas en:
+   *
+   * public/alojamientos/yakutour/
+   */
+
+  const esYakutour =
+    alojamiento.nombre?.toLowerCase().includes("yakutour");
+
+  const imagenPrincipal = esYakutour
+    ? "/alojamientos/yakutour/yakutour-1.jpeg"
+    : alojamiento.imagen_url || null;
+
+  /*
+   * Si existe tipo de alojamiento mostramos:
+   * RURAL / URBANO
+   *
+   * Si todavía no tiene categoría usamos:
+   * ALOJAMIENTO
+   */
+
+  const tipo = alojamiento.tipo_alojamiento
+    ? alojamiento.tipo_alojamiento
+    : "Alojamiento";
+
   return (
     <article
       className="tarjeta"
       style={{
         overflow: "hidden",
         padding: 0,
+        display: "flex",
+        flexDirection: "column",
       }}
     >
-      {/* IMAGEN */}
+
+      {/* =====================================================
+          IMAGEN
+          ===================================================== */}
+
       <div
         style={{
           width: "100%",
-          height: 230,
+          height: 250,
           background: "#e5e7eb",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
           overflow: "hidden",
         }}
       >
-        {alojamiento.imagen_url ? (
+
+        {imagenPrincipal ? (
+
           <img
-            src={alojamiento.imagen_url}
+            src={imagenPrincipal}
             alt={`Fotografía de ${alojamiento.nombre}`}
             style={{
               width: "100%",
               height: "100%",
               objectFit: "cover",
+              display: "block",
             }}
           />
+
         ) : (
+
           <div
             style={{
-              textAlign: "center",
+              width: "100%",
+              height: "100%",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
               color: "#6b7280",
-              padding: "1rem",
             }}
           >
-            <div style={{ fontSize: "3rem" }}>🏡</div>
-            <p>Fotografía próximamente</p>
+
+            <div style={{ fontSize: "3rem" }}>
+              🏡
+            </div>
+
+            <p>
+              Fotografía próximamente
+            </p>
+
           </div>
+
         )}
+
       </div>
 
-      {/* INFORMACIÓN */}
-      <div style={{ padding: "1.25rem" }}>
+
+      {/* =====================================================
+          INFORMACIÓN
+          ===================================================== */}
+
+      <div
+        style={{
+          padding: "1.25rem",
+          display: "flex",
+          flexDirection: "column",
+          flex: 1,
+        }}
+      >
+
+        {/* CATEGORÍA */}
+
         <span
           style={{
-            fontSize: "0.8rem",
-            color: "#6b7280",
+            fontSize: "0.75rem",
+            color: "#1f4d3a",
             textTransform: "uppercase",
-            letterSpacing: "0.05em",
+            letterSpacing: "0.08em",
+            fontWeight: 700,
+            marginBottom: "0.35rem",
           }}
         >
-          Alojamiento
+          {tipo}
         </span>
 
-        <h2 style={{ marginTop: "0.3rem" }}>
+
+        {/* NOMBRE */}
+
+        <h2
+          style={{
+            margin: "0 0 0.6rem",
+          }}
+        >
           {alojamiento.nombre}
         </h2>
 
-        {alojamiento.descripcion && (
-          <p>{alojamiento.descripcion}</p>
+
+        {/* DESCRIPCIÓN */}
+
+        {(alojamiento.descripcion_corta ||
+          alojamiento.descripcion) && (
+
+          <p
+            style={{
+              marginBottom: "1.2rem",
+              lineHeight: 1.6,
+              color: "#4b5563",
+            }}
+          >
+            {alojamiento.descripcion_corta ||
+              alojamiento.descripcion}
+          </p>
+
         )}
 
-        {/* INFORMACIÓN BÁSICA */}
-        <div
-          style={{
-            display: "grid",
-            gap: "0.5rem",
-            margin: "1rem 0",
-            fontSize: "0.9rem",
-          }}
+
+            {/* BOTÓN VER ALOJAMIENTO */}
+      <div style={{ marginTop: "auto" }}>
+        <a
+          href={
+            alojamiento.slug
+              ? `/hospedaje/${alojamiento.slug}`
+              : `/hospedaje?id=${alojamiento.id}`
+          }
+          className="boton boton-primario"
         >
-          {alojamiento.capacidad_personas && (
-            <div>
-              👥 Capacidad: hasta{" "}
-              {alojamiento.capacidad_personas} personas
-            </div>
-          )}
-
-          {alojamiento.precio_por_noche && (
-            <div>
-              💰 Desde $
-              {Number(
-                alojamiento.precio_por_noche
-              ).toLocaleString("es-CO")}{" "}
-              por noche
-            </div>
-          )}
-        </div>
-
-        {/* BOTONES */}
-        <div
-          style={{
-            display: "flex",
-            gap: "0.6rem",
-            flexWrap: "wrap",
-            marginTop: "1rem",
-          }}
-        >
-          <a
-            href={`/hospedaje?id=${alojamiento.id}`}
-            className="boton boton-primario"
-          >
-            Ver alojamiento
-          </a>
-
-          <a
-            href={`/hospedaje?id=${alojamiento.id}`}
-            className="boton"
-          >
-            Consultar disponibilidad
-          </a>
-        </div>
+          Ver alojamiento
+        </a>
       </div>
-    </article>
+
+    </div>
+  </article>
   );
 }
