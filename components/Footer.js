@@ -9,7 +9,7 @@ export default function Footer() {
           Instagram
         </a>
       </p>
-      <p>Contáctanos: (+57) 312 856 14 83 · redlocal@toursanrafael.com</p>
+      <p>Contáctanos: (+57) 312 856 14 83 · inforedtour@toursanrafael.com</p>
       <p>
         © {new Date().getFullYear()} Red Local de Turismo San Rafael · <a href="/dashboard">Acceso administrativo</a>
       </p>

@@ -14,10 +14,21 @@ export default function RootLayout({ children }) {
       <body>
         <header className="encabezado">
           <a href="/" className="encabezado__marca">
-            <span>San Rafael</span>
-            <small>Único por naturaleza</small>
+            <img
+              src="/logo/logo.png"
+              alt="Turismo San Rafael"
+              style={{
+                width: "120px",
+                height: "auto",
+                display: "block",
+              }}
+            />
           </a>
-          <nav className="encabezado__nav" aria-label="Navegación principal">
+
+          <nav
+            className="encabezado__nav"
+            aria-label="Navegación principal"
+          >
             <a href="/">Inicio</a>
             <a href="/descubre">Descubre</a>
             <a href="/experiencias">Experiencias</a>
@@ -27,8 +38,11 @@ export default function RootLayout({ children }) {
             <a href="/la-red">La Red</a>
           </nav>
         </header>
+
         <main>{children}</main>
+
         <Footer />
+
         <Chatbot />
       </body>
     </html>
