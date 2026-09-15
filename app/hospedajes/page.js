@@ -33,7 +33,7 @@ export default function HospedajesPage() {
         .order("creado_en", { ascending: true });
 
       if (error) {
-        console.error(error);
+        console.error("Error cargando alojamientos:", error);
         setError("No fue posible cargar los alojamientos.");
       } else {
         setAlojamientos(data || []);
@@ -45,6 +45,10 @@ export default function HospedajesPage() {
     cargarAlojamientos();
   }, []);
 
+  /* ============================================================
+     CARGANDO
+  ============================================================ */
+
   if (cargando) {
     return (
       <section className="pagina">
@@ -52,6 +56,10 @@ export default function HospedajesPage() {
       </section>
     );
   }
+
+  /* ============================================================
+     ERROR
+  ============================================================ */
 
   if (error) {
     return (
@@ -61,49 +69,87 @@ export default function HospedajesPage() {
     );
   }
 
+  /* ============================================================
+     PÁGINA
+  ============================================================ */
+
   return (
     <section className="pagina">
 
-      {/* ENCABEZADO */}
-      <section className="pagina__intro">
-        <span className="eyebrow">Dónde hospedarte</span>
+      {/* ========================================================
+          ENCABEZADO
+      ======================================================== */}
 
-        <h1>Alojamientos en San Rafael</h1>
+      <section className="pagina__intro">
+
+        <span className="eyebrow">
+          Dónde hospedarte
+        </span>
+
+        <h1>
+          Alojamientos en San Rafael
+        </h1>
 
         <p>
           Encuentra alojamientos rurales y urbanos para disfrutar
           de San Rafael. Conoce cada lugar, descubre sus características
           y contacta directamente con el prestador.
         </p>
+
       </section>
 
-      {/* CONTADOR */}
-      <div style={{ marginBottom: "1.5rem" }}>
+
+      {/* ========================================================
+          CONTADOR
+      ======================================================== */}
+
+      <div
+        style={{
+          marginBottom: "1.5rem",
+        }}
+      >
         <strong>
           Alojamientos registrados ({alojamientos.length})
         </strong>
       </div>
 
-      {/* LISTADO */}
+
+      {/* ========================================================
+          LISTADO
+      ======================================================== */}
+
       {alojamientos.length === 0 ? (
+
         <div className="tarjeta">
-          <h2>Próximamente</h2>
+
+          <h2>
+            Próximamente
+          </h2>
 
           <p>
             Estamos incorporando nuevas opciones de alojamiento
             en San Rafael.
           </p>
+
         </div>
+
       ) : (
+
         <div className="grid-tarjetas">
+
           {alojamientos.map((alojamiento) => (
+
             <FichaAlojamiento
               key={alojamiento.id}
               alojamiento={alojamiento}
             />
+
           ))}
+
         </div>
+
       )}
+
     </section>
   );
 }
@@ -111,37 +157,62 @@ export default function HospedajesPage() {
 
 /* ============================================================
    TARJETA DE ALOJAMIENTO
-   ============================================================ */
+============================================================ */
 
 function FichaAlojamiento({ alojamiento }) {
 
   /*
-   * Yakutour utiliza por ahora las fotografías reales
+   * Yakutour utiliza actualmente las fotografías reales
    * almacenadas en:
    *
    * public/alojamientos/yakutour/
    */
 
   const esYakutour =
-    alojamiento.nombre?.toLowerCase().includes("yakutour");
+    alojamiento.nombre
+      ?.toLowerCase()
+      .includes("yakutour");
+
 
   const imagenPrincipal = esYakutour
     ? "/alojamientos/yakutour/yakutour-1.jpeg"
     : alojamiento.imagen_url || null;
 
+
   /*
-   * Si existe tipo de alojamiento mostramos:
-   * RURAL / URBANO
-   *
-   * Si todavía no tiene categoría usamos:
-   * ALOJAMIENTO
+   * Categoría del alojamiento
    */
 
-  const tipo = alojamiento.tipo_alojamiento
-    ? alojamiento.tipo_alojamiento
-    : "Alojamiento";
+  const tipo =
+    alojamiento.tipo_alojamiento ||
+    "Alojamiento";
+
+
+  /* ============================================================
+     URL DE LA FICHA
+  ============================================================ */
+
+  /*
+   * IMPORTANTE:
+   *
+   * Todos los alojamientos deben tener un slug diferente
+   * en Supabase.
+   *
+   * Ejemplo:
+   *
+   * /hospedaje/hosteria-yakutour
+   * /hospedaje/la-cueva-de-morgan
+   * /hospedaje/agua-de-luna
+   *
+   */
+
+  const urlAlojamiento = alojamiento.slug
+    ? `/hospedaje/${alojamiento.slug}`
+    : null;
+
 
   return (
+
     <article
       className="tarjeta"
       style={{
@@ -152,9 +223,9 @@ function FichaAlojamiento({ alojamiento }) {
       }}
     >
 
-      {/* =====================================================
+      {/* ========================================================
           IMAGEN
-          ===================================================== */}
+      ======================================================== */}
 
       <div
         style={{
@@ -192,7 +263,11 @@ function FichaAlojamiento({ alojamiento }) {
             }}
           >
 
-            <div style={{ fontSize: "3rem" }}>
+            <div
+              style={{
+                fontSize: "3rem",
+              }}
+            >
               🏡
             </div>
 
@@ -207,9 +282,9 @@ function FichaAlojamiento({ alojamiento }) {
       </div>
 
 
-      {/* =====================================================
+      {/* ========================================================
           INFORMACIÓN
-          ===================================================== */}
+      ======================================================== */}
 
       <div
         style={{
@@ -220,7 +295,9 @@ function FichaAlojamiento({ alojamiento }) {
         }}
       >
 
-        {/* CATEGORÍA */}
+        {/* ======================================================
+            CATEGORÍA
+        ====================================================== */}
 
         <span
           style={{
@@ -236,7 +313,9 @@ function FichaAlojamiento({ alojamiento }) {
         </span>
 
 
-        {/* NOMBRE */}
+        {/* ======================================================
+            NOMBRE
+        ====================================================== */}
 
         <h2
           style={{
@@ -247,7 +326,9 @@ function FichaAlojamiento({ alojamiento }) {
         </h2>
 
 
-        {/* DESCRIPCIÓN */}
+        {/* ======================================================
+            DESCRIPCIÓN
+        ====================================================== */}
 
         {(alojamiento.descripcion_corta ||
           alojamiento.descripcion) && (
@@ -266,21 +347,43 @@ function FichaAlojamiento({ alojamiento }) {
         )}
 
 
-            {/* BOTÓN VER ALOJAMIENTO */}
-      <div style={{ marginTop: "auto" }}>
-        <a
-          href={
-            alojamiento.slug
-              ? `/hospedaje/${alojamiento.slug}`
-              : `/hospedaje?id=${alojamiento.id}`
-          }
-          className="boton boton-primario"
+        {/* ======================================================
+            BOTÓN
+        ====================================================== */}
+
+        <div
+          style={{
+            marginTop: "auto",
+          }}
         >
-          Ver alojamiento
-        </a>
+
+          {urlAlojamiento ? (
+
+            <a
+              href={urlAlojamiento}
+              className="boton boton-primario"
+            >
+              Ver alojamiento
+            </a>
+
+          ) : (
+
+            <span
+              style={{
+                color: "#6b7280",
+                fontSize: "0.9rem",
+              }}
+            >
+              Información próximamente disponible
+            </span>
+
+          )}
+
+        </div>
+
       </div>
 
-    </div>
-  </article>
+    </article>
+
   );
 }
