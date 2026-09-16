@@ -167,7 +167,7 @@ function obtenerLogo(alojamiento) {
       "/logo/logo-club-paradise.jpg",
 
     "la-cueva-de-morgan":
-      "/logo/logo-cueva-de-Morgan.jpg",
+      "/logo/logo-cueva-de-morgan.jpg",
 
     "despertar-con-las-aves":
       "/logo/logo-despertar-con-las-aves.jpg",
