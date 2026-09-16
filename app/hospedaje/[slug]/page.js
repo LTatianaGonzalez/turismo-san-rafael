@@ -467,40 +467,36 @@ export default function HospedajeDetallePage() {
   );
 }
 
-
 /* ============================================================
    GALERÍA DE ALOJAMIENTO
 ============================================================ */
 
 function GaleriaAlojamiento({ alojamiento }) {
-
   const fotos = obtenerFotos(alojamiento);
 
   const [fotoPrincipal, setFotoPrincipal] = useState(
-    fotos.length > 0
-      ? fotos[0]
-      : null
+    fotos.length > 0 ? fotos[0] : null
   );
 
-  return (
+  useEffect(() => {
+    setFotoPrincipal(fotos.length > 0 ? fotos[0] : null);
+  }, [alojamiento.id]);
 
+  return (
     <section className="galeria-ficha">
 
-      {/* ======================================================
+      {/* =====================================================
           FOTO PRINCIPAL
-      ====================================================== */}
+      ===================================================== */}
 
       <div className="foto-principal">
 
         {fotoPrincipal ? (
-
           <img
             src={fotoPrincipal}
             alt={`Fotografía de ${alojamiento.nombre}`}
           />
-
         ) : (
-
           <div
             style={{
               height: "100%",
@@ -513,18 +509,16 @@ function GaleriaAlojamiento({ alojamiento }) {
           >
             🏡
           </div>
-
         )}
 
       </div>
 
 
-      {/* ======================================================
-          MINIATURAS
-      ====================================================== */}
+      {/* =====================================================
+          TODAS LAS MINIATURAS
+      ===================================================== */}
 
-      {fotos.length > 0 && (
-
+      {fotos.length > 1 && (
         <div className="fotos-secundarias">
 
           {fotos.map((foto, index) => (
@@ -552,52 +546,59 @@ function GaleriaAlojamiento({ alojamiento }) {
           ))}
 
         </div>
-
       )}
 
     </section>
-
   );
 }
-
 
 /* ============================================================
    OBTENER FOTOS
 ============================================================ */
 
 function obtenerFotos(alojamiento) {
-
-  const nombre =
-    alojamiento.nombre?.toLowerCase() || "";
+  const nombre = alojamiento.nombre
+    ?.toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
 
   /* ==========================================================
      YAKUTOUR
   ========================================================== */
 
-  if (nombre.includes("yakutour")) {
-
+  if (nombre?.includes("yakutour")) {
     return [
       "/alojamientos/yakutour/yakutour-1.jpeg",
       "/alojamientos/yakutour/yakutour-2.jpeg",
       "/alojamientos/yakutour/yakutour-3.jpeg",
+      "/alojamientos/yakutour/yakutour-4.jpeg",
+      "/alojamientos/yakutour/yakutour-5.jpg",
+      "/alojamientos/yakutour/yakutour-6.jpg",
     ];
-
   }
 
+  /* ==========================================================
+     CUEVA DE MORGAN
+  ========================================================== */
+
+  if (nombre?.includes("cueva de morgan")) {
+    return [
+      "/alojamientos/cueva-de-morgan/cueva-de-morgan-1.jpg",
+      "/alojamientos/cueva-de-morgan/cueva-de-morgan-2.jpg",
+      "/alojamientos/cueva-de-morgan/cueva-de-morgan-3.jpg",
+      "/alojamientos/cueva-de-morgan/cueva-de-morgan-4.jpg",
+      "/alojamientos/cueva-de-morgan/cueva-de-morgan-5.jpg",
+      "/alojamientos/cueva-de-morgan/cueva-de-morgan-6.jpg",
+    ];
+  }
 
   /* ==========================================================
      OTROS ALOJAMIENTOS
   ========================================================== */
 
   if (alojamiento.imagen_url) {
-
-    return [
-      alojamiento.imagen_url,
-    ];
-
+    return [alojamiento.imagen_url];
   }
 
-
   return [];
-
 }

@@ -33,7 +33,7 @@ export default function HospedajesPage() {
         .order("creado_en", { ascending: true });
 
       if (error) {
-        console.error("Error cargando alojamientos:", error);
+        console.error(error);
         setError("No fue posible cargar los alojamientos.");
       } else {
         setAlojamientos(data || []);
@@ -45,10 +45,6 @@ export default function HospedajesPage() {
     cargarAlojamientos();
   }, []);
 
-  /* ============================================================
-     CARGANDO
-  ============================================================ */
-
   if (cargando) {
     return (
       <section className="pagina">
@@ -56,10 +52,6 @@ export default function HospedajesPage() {
       </section>
     );
   }
-
-  /* ============================================================
-     ERROR
-  ============================================================ */
 
   if (error) {
     return (
@@ -69,16 +61,12 @@ export default function HospedajesPage() {
     );
   }
 
-  /* ============================================================
-     PÁGINA
-  ============================================================ */
-
   return (
     <section className="pagina">
 
-      {/* ========================================================
+      {/* =====================================================
           ENCABEZADO
-      ======================================================== */}
+      ===================================================== */}
 
       <section className="pagina__intro">
 
@@ -99,24 +87,22 @@ export default function HospedajesPage() {
       </section>
 
 
-      {/* ========================================================
+      {/* =====================================================
           CONTADOR
-      ======================================================== */}
+      ===================================================== */}
 
-      <div
-        style={{
-          marginBottom: "1.5rem",
-        }}
-      >
+      <div style={{ marginBottom: "1.5rem" }}>
+
         <strong>
           Alojamientos registrados ({alojamientos.length})
         </strong>
+
       </div>
 
 
-      {/* ========================================================
+      {/* =====================================================
           LISTADO
-      ======================================================== */}
+      ===================================================== */}
 
       {alojamientos.length === 0 ? (
 
@@ -156,60 +142,137 @@ export default function HospedajesPage() {
 
 
 /* ============================================================
+   MAPA DE LOGOS
+============================================================ */
+
+function obtenerLogo(alojamiento) {
+
+  const slug = alojamiento.slug;
+
+  const logos = {
+
+    "cabana-el-arenal":
+      "/logo/logo-cabana-el-arenal.jpg",
+
+    "cabana-la-villa":
+      "/logo/logo-cabaña-la-villa.jpg",
+
+    "casa-clandestina-campestre":
+      "/logo/logo-casa-clandestina.jpg",
+
+    "casa-verde":
+      "/logo/logo-casa-verde.jpg",
+
+    "hotel-club-paradise":
+      "/logo/logo-club-paradise.jpg",
+
+    "la-cueva-de-morgan":
+      "/logo/logo-cueva-de-Morgan.jpg",
+
+    "despertar-con-las-aves":
+      "/logo/logo-despertar-con-las-aves.jpg",
+
+    "ecolodge-aracari":
+      "/logo/logo-ecolodge-aracari.jpg",
+
+    "ecolodge-raices":
+      "/logo/logo-ecolodge-raices.jpg",
+
+    "ecos-del-rio":
+      "/logo/logo-ecos-del-rio.jpg",
+
+    "escape-natural":
+      "/logo/logo-escape-natural.jpg",
+
+    "finca-hotel-el-trocadero":
+      "/logo/logo-finca-el-trocadero.jpg",
+
+    "gran-hotel-san-rafael":
+      "/logo/logo-gran-hotel.jpg",
+
+    "hacienda-popalito":
+      "/logo/logo-hacienda-popalito.jpg",
+
+    "hotel-la-roca":
+      "/logo/logo-hotel-la-roca.jpg",
+
+    "indigo-cowork":
+      "/logo/logo-indigo.jpg",
+
+    "la-perla-negra-eco-lodge":
+      "/logo/logo-la-perla-negra.png",
+
+    "la-posada-de-las-aves":
+      "/logo/logo-la-posada-de-las-aves.jpg",
+
+    "manawa":
+      "/logo/logo-manawa.jpg",
+
+    "maracuya-hostel":
+      "/logo/logo-maracuya-hostal.jpg",
+
+    "hospedaje-naturaleza-viva":
+      "/logo/logo-naturaleza-viva.jpg",
+
+    "nomada-hospedaje":
+      "/logo/logo-nómada-hospedaje.jpg",
+
+    "palagua-lodge":
+      "/logo/logo-palagua.jpg",
+
+    "piedra-montada":
+      "/logo/logo-piedra-montada.jpg",
+
+    "ritmo-del-rio":
+      "/logo/logo-ritmo-del-rio.png",
+
+    "eco-hostal-tierra-de-agua-y-fuego":
+      "/logo/logo-tierra-de-agua-fuego.jpg",
+
+    "zafra":
+      "/logo/logo-zafra.png",
+
+    "hotel-magia-natural":
+      "/logo/logo-magia-natural.png",
+
+    "hospedaje-casa-luan":
+      "/logo/logo-casa-luan.png",
+
+    "estacion-paraiso-de-dantas":
+      "/logo/logo-paraiso-de-dantas.png",
+
+    "hosteria-yakutour":
+      "/logo/logo-yakutour.jpg",
+
+    "agua-de-luna":
+      "/logo/logo-agua-de-luna.jpg",
+
+    "ecohotel-rio-de-oro":
+      "/logo/logo-rio-de-oro.jpg",
+
+    "eco-finca-la-sonada":
+      "/logo/logo-la-sonada.jpg",
+
+    "embajada-century-fox":
+      "/logo/logo-embajada-century-fox.jpg",
+
+  };
+
+  return logos[slug] || null;
+}
+
+
+/* ============================================================
    TARJETA DE ALOJAMIENTO
 ============================================================ */
 
 function FichaAlojamiento({ alojamiento }) {
 
-  /*
-   * Yakutour utiliza actualmente las fotografías reales
-   * almacenadas en:
-   *
-   * public/alojamientos/yakutour/
-   */
-
-  const esYakutour =
-    alojamiento.nombre
-      ?.toLowerCase()
-      .includes("yakutour");
-
-
-  const imagenPrincipal = esYakutour
-    ? "/alojamientos/yakutour/yakutour-1.jpeg"
-    : alojamiento.imagen_url || null;
-
-
-  /*
-   * Categoría del alojamiento
-   */
+  const logo = obtenerLogo(alojamiento);
 
   const tipo =
     alojamiento.tipo_alojamiento ||
     "Alojamiento";
-
-
-  /* ============================================================
-     URL DE LA FICHA
-  ============================================================ */
-
-  /*
-   * IMPORTANTE:
-   *
-   * Todos los alojamientos deben tener un slug diferente
-   * en Supabase.
-   *
-   * Ejemplo:
-   *
-   * /hospedaje/hosteria-yakutour
-   * /hospedaje/la-cueva-de-morgan
-   * /hospedaje/agua-de-luna
-   *
-   */
-
-  const urlAlojamiento = alojamiento.slug
-    ? `/hospedaje/${alojamiento.slug}`
-    : null;
-
 
   return (
 
@@ -223,28 +286,32 @@ function FichaAlojamiento({ alojamiento }) {
       }}
     >
 
-      {/* ========================================================
-          IMAGEN
-      ======================================================== */}
+      {/* =====================================================
+          LOGO
+      ===================================================== */}
 
       <div
         style={{
           width: "100%",
           height: 250,
-          background: "#e5e7eb",
+          background: "#ffffff",
           overflow: "hidden",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "1.5rem",
         }}
       >
 
-        {imagenPrincipal ? (
+        {logo ? (
 
           <img
-            src={imagenPrincipal}
-            alt={`Fotografía de ${alojamiento.nombre}`}
+            src={logo}
+            alt={`Logo de ${alojamiento.nombre}`}
             style={{
               width: "100%",
               height: "100%",
-              objectFit: "cover",
+              objectFit: "contain",
               display: "block",
             }}
           />
@@ -272,7 +339,7 @@ function FichaAlojamiento({ alojamiento }) {
             </div>
 
             <p>
-              Fotografía próximamente
+              Logo próximamente
             </p>
 
           </div>
@@ -282,9 +349,9 @@ function FichaAlojamiento({ alojamiento }) {
       </div>
 
 
-      {/* ========================================================
+      {/* =====================================================
           INFORMACIÓN
-      ======================================================== */}
+      ===================================================== */}
 
       <div
         style={{
@@ -295,9 +362,7 @@ function FichaAlojamiento({ alojamiento }) {
         }}
       >
 
-        {/* ======================================================
-            CATEGORÍA
-        ====================================================== */}
+        {/* CATEGORÍA */}
 
         <span
           style={{
@@ -313,9 +378,7 @@ function FichaAlojamiento({ alojamiento }) {
         </span>
 
 
-        {/* ======================================================
-            NOMBRE
-        ====================================================== */}
+        {/* NOMBRE */}
 
         <h2
           style={{
@@ -326,9 +389,7 @@ function FichaAlojamiento({ alojamiento }) {
         </h2>
 
 
-        {/* ======================================================
-            DESCRIPCIÓN
-        ====================================================== */}
+        {/* DESCRIPCIÓN */}
 
         {(alojamiento.descripcion_corta ||
           alojamiento.descripcion) && (
@@ -340,16 +401,18 @@ function FichaAlojamiento({ alojamiento }) {
               color: "#4b5563",
             }}
           >
+
             {alojamiento.descripcion_corta ||
               alojamiento.descripcion}
+
           </p>
 
         )}
 
 
-        {/* ======================================================
+        {/* =================================================
             BOTÓN
-        ====================================================== */}
+        ================================================= */}
 
         <div
           style={{
@@ -357,27 +420,12 @@ function FichaAlojamiento({ alojamiento }) {
           }}
         >
 
-          {urlAlojamiento ? (
-
-            <a
-              href={urlAlojamiento}
-              className="boton boton-primario"
-            >
-              Ver alojamiento
-            </a>
-
-          ) : (
-
-            <span
-              style={{
-                color: "#6b7280",
-                fontSize: "0.9rem",
-              }}
-            >
-              Información próximamente disponible
-            </span>
-
-          )}
+          <a
+            href={`/hospedaje/${alojamiento.slug}`}
+            className="boton boton-primario"
+          >
+            Ver alojamiento
+          </a>
 
         </div>
 
