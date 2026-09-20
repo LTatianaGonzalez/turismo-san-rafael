@@ -27,16 +27,33 @@ export default function HospedajesPage() {
           whatsapp_url,
           sitio_web_url,
           mapa_url,
-          activo
+          activo,
+          asociado_red
         `)
-        .eq("activo", true)
-        .order("creado_en", { ascending: true });
+        .eq("activo", true);
 
       if (error) {
         console.error(error);
         setError("No fue posible cargar los alojamientos.");
       } else {
-        setAlojamientos(data || []);
+        /*
+         * ORDEN:
+         * 1. Asociados a la Red primero
+         * 2. Dentro de cada grupo, orden alfabético
+         */
+        const alojamientosOrdenados = (data || []).sort((a, b) => {
+          if (a.asociado_red !== b.asociado_red) {
+            return a.asociado_red ? -1 : 1;
+          }
+
+          return a.nombre.localeCompare(
+            b.nombre,
+            "es",
+            { sensitivity: "base" }
+          );
+        });
+
+        setAlojamientos(alojamientosOrdenados);
       }
 
       setCargando(false);
@@ -154,14 +171,51 @@ function obtenerLogo(alojamiento) {
     "cabana-el-arenal":
       "/logo/logo-cabana-el-arenal.jpg",
 
+    "reserva-natural-origen":
+      "/logo/logo-reserva-natural-origen.png",
+
+    "con-olor-a-cacao":
+      "/logo/logo-con-olor-a-cacao.jpg",
+
+    "agua-dulce":
+      "/logo/logo-agua-dulce.jpg",
+
+    "finca-el-toche":
+      "/logo/logo-finca-el-toche.jpg",
+
+    "lagom-apartamentos":
+      "/logo/logo-lagom-apartamentos.jpg",
+
+    "spa-todos":
+      "/logo/logo-spa-todos.jpg",
+
+    "cabanas-riovivo":
+      "/logo/logo-riovivo.jpg",
+
+    "cabana-el-arenal":
+      "/logo/logo-cabaña-el-arenal.jpg",
+
+    "casa-verde":
+      "/logo/logo-hotel-kreata.jpg",
+
+
+    "hostal-vista-hermosa":
+      "/logo/logo-hostal-vista-hermosa.jpg",
+
+    "santa-maria-del-rio":
+      "/logo/logo-santa-maria-del-rio.jpg",
+
+    "finca-el-palmar":
+      "/logo/logo-finca-el-palmar.jpg",
+
+    "finca-la-chocha":
+      "/logo/logo-finca-la-chocha.jpg",
+
     "cabana-la-villa":
       "/logo/logo-cabaña-la-villa.jpg",
 
     "casa-clandestina-campestre":
       "/logo/logo-casa-clandestina.jpg",
-
-    "casa-verde":
-      "/logo/logo-casa-verde.jpg",
 
     "hotel-club-paradise":
       "/logo/logo-club-paradise.jpg",
