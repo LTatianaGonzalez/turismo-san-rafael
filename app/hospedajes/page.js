@@ -22,7 +22,6 @@ export default function HospedajesPage() {
           tipo_alojamiento,
           descripcion,
           descripcion_corta,
-          imagen_url,
           instagram_url,
           whatsapp_url,
           sitio_web_url,
@@ -33,7 +32,7 @@ export default function HospedajesPage() {
         .eq("activo", true);
 
       if (error) {
-        console.error(error);
+        console.error("Error cargando alojamientos:", error);
         setError("No fue posible cargar los alojamientos.");
       } else {
         /*
@@ -192,12 +191,8 @@ function obtenerLogo(alojamiento) {
     "cabanas-riovivo":
       "/logo/logo-riovivo.jpg",
 
-    "cabana-el-arenal":
-      "/logo/logo-cabaña-el-arenal.jpg",
-
     "casa-verde":
       "/logo/logo-hotel-kreata.jpg",
-
 
     "hostal-vista-hermosa":
       "/logo/logo-hostal-vista-hermosa.jpg",
@@ -223,9 +218,6 @@ function obtenerLogo(alojamiento) {
     "la-cueva-de-morgan":
       "/logo/logo-cueva-de-morgan.jpg",
 
-    "despertar-con-las-aves":
-      "/logo/logo-despertar-con-las-aves.jpg",
-
     "ecolodge-aracari":
       "/logo/logo-ecolodge-aracari.jpg",
 
@@ -235,14 +227,8 @@ function obtenerLogo(alojamiento) {
     "ecos-del-rio":
       "/logo/logo-ecos-del-rio.jpg",
 
-    "escape-natural":
-      "/logo/logo-escape-natural.jpg",
-
     "finca-hotel-el-trocadero":
       "/logo/logo-finca-el-trocadero.jpg",
-
-    "gran-hotel-san-rafael":
-      "/logo/logo-gran-hotel.jpg",
 
     "hacienda-popalito":
       "/logo/logo-hacienda-popalito.jpg",
@@ -279,9 +265,6 @@ function obtenerLogo(alojamiento) {
 
     "ritmo-del-rio":
       "/logo/logo-ritmo-del-rio.png",
-
-    "eco-hostal-tierra-de-agua-y-fuego":
-      "/logo/logo-tierra-de-agua-fuego.jpg",
 
     "zafra":
       "/logo/logo-zafra.png",

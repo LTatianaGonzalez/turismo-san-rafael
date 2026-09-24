@@ -1,19 +1,24 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function DashboardPage() {
+  const router = useRouter();
+
   // =========================================================
-  // SESIÓN
+  // SESIÓN / PERFIL RLT
   // =========================================================
 
   const [session, setSession] = useState(null);
-  const [cargandoSesion, setCargandoSesion] = useState(true);
+  const [perfilRlt, setPerfilRlt] = useState(null);
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [errorLogin, setErrorLogin] = useState(null);
+  const [cargandoSesion, setCargandoSesion] =
+    useState(true);
+
+  const [cargandoPerfil, setCargandoPerfil] =
+    useState(true);
 
   // =========================================================
   // CHATBOT
@@ -43,18 +48,27 @@ export default function DashboardPage() {
     capacidad_personas: "",
   });
 
-  const [guardandoHotel, setGuardandoHotel] = useState(false);
-  const [mensajeHotel, setMensajeHotel] = useState(null);
-  const [hotelEditando, setHotelEditando] = useState(null);
+  const [guardandoHotel, setGuardandoHotel] =
+    useState(false);
+
+  const [mensajeHotel, setMensajeHotel] =
+    useState(null);
+
+  const [hotelEditando, setHotelEditando] =
+    useState(null);
 
   // =========================================================
   // MIEMBROS RLT
   // =========================================================
 
-  const [solicitudesRlt, setSolicitudesRlt] = useState([]);
-  const [miembrosRlt, setMiembrosRlt] = useState([]);
+  const [solicitudesRlt, setSolicitudesRlt] =
+    useState([]);
 
-  const [cargandoMiembros, setCargandoMiembros] = useState(false);
+  const [miembrosRlt, setMiembrosRlt] =
+    useState([]);
+
+  const [cargandoMiembros, setCargandoMiembros] =
+    useState(false);
 
   const [procesandoSolicitud, setProcesandoSolicitud] =
     useState(null);
@@ -69,34 +83,184 @@ export default function DashboardPage() {
     useState({});
 
   // =========================================================
-  // SESIÓN
+  // VERIFICAR SESIÓN Y PERFIL RLT
   // =========================================================
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
+    let componenteActivo = true;
+
+    async function verificarAcceso() {
+      const {
+        data: { session: sesionActual },
+      } = await supabase.auth.getSession();
+
+      if (!componenteActivo) {
+        return;
+      }
+
+      // -----------------------------------------------------
+      // NO HAY SESIÓN
+      // -----------------------------------------------------
+
+      if (!sesionActual?.user) {
+        setSession(null);
+        setPerfilRlt(null);
+        setCargandoSesion(false);
+        setCargandoPerfil(false);
+
+        router.replace("/acceso");
+
+        return;
+      }
+
+      setSession(sesionActual);
+
+      // -----------------------------------------------------
+      // BUSCAR PERFIL EN usuarios_rlt
+      // -----------------------------------------------------
+
+      const {
+        data: perfil,
+        error,
+      } = await supabase
+        .from("usuarios_rlt")
+        .select(
+          "id, nombre, telefono, correo, rol, creado_en"
+        )
+        .eq(
+          "id",
+          sesionActual.user.id
+        )
+        .maybeSingle();
+
+      if (!componenteActivo) {
+        return;
+      }
+
+      // -----------------------------------------------------
+      // ERROR O USUARIO NO REGISTRADO
+      // -----------------------------------------------------
+
+      if (error) {
+        console.error(
+          "Error consultando usuarios_rlt:",
+          error
+        );
+
+        await supabase.auth.signOut();
+
+        if (componenteActivo) {
+          setSession(null);
+          setPerfilRlt(null);
+          setCargandoSesion(false);
+          setCargandoPerfil(false);
+
+          router.replace("/acceso");
+        }
+
+        return;
+      }
+
+      if (!perfil) {
+        console.error(
+          "El usuario autenticado no tiene perfil en usuarios_rlt."
+        );
+
+        await supabase.auth.signOut();
+
+        if (componenteActivo) {
+          setSession(null);
+          setPerfilRlt(null);
+          setCargandoSesion(false);
+          setCargandoPerfil(false);
+
+          router.replace("/acceso");
+        }
+
+        return;
+      }
+
+      // -----------------------------------------------------
+      // SOLO ADMIN PUEDE ENTRAR AL DASHBOARD
+      // -----------------------------------------------------
+
+      if (
+        String(perfil.rol).toLowerCase() !==
+        "admin"
+      ) {
+        console.error(
+          "El usuario no tiene rol ADMIN."
+        );
+
+        await supabase.auth.signOut();
+
+        if (componenteActivo) {
+          setSession(null);
+          setPerfilRlt(null);
+          setCargandoSesion(false);
+          setCargandoPerfil(false);
+
+          router.replace("/acceso");
+        }
+
+        return;
+      }
+
+      // -----------------------------------------------------
+      // ACCESO ADMINISTRATIVO CORRECTO
+      // -----------------------------------------------------
+
+      setPerfilRlt(perfil);
       setCargandoSesion(false);
-    });
+      setCargandoPerfil(false);
+    }
+
+    verificarAcceso();
+
+    // =======================================================
+    // ESCUCHAR CAMBIOS DE AUTENTICACIÓN
+    // =======================================================
 
     const {
       data: listener,
     } = supabase.auth.onAuthStateChange(
       (_event, nuevaSesion) => {
+        if (!componenteActivo) {
+          return;
+        }
+
+        if (!nuevaSesion?.user) {
+          setSession(null);
+          setPerfilRlt(null);
+
+          router.replace("/acceso");
+          return;
+        }
+
         setSession(nuevaSesion);
       }
     );
 
     return () => {
+      componenteActivo = false;
+
       listener.subscription.unsubscribe();
     };
-  }, []);
+  }, [router]);
 
   // =========================================================
   // CARGAR DATOS
   // =========================================================
 
   useEffect(() => {
-    if (!session) return;
+    if (
+      !session ||
+      !perfilRlt ||
+      String(perfilRlt.rol).toLowerCase() !==
+        "admin"
+    ) {
+      return;
+    }
 
     async function cargarDatos() {
       await cargarPreguntas();
@@ -105,29 +269,7 @@ export default function DashboardPage() {
     }
 
     cargarDatos();
-  }, [session]);
-
-  // =========================================================
-  // LOGIN
-  // =========================================================
-
-  async function handleLogin(e) {
-    e.preventDefault();
-
-    setErrorLogin(null);
-
-    const { error } =
-      await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-    if (error) {
-      setErrorLogin(
-        "Correo o contraseña incorrectos."
-      );
-    }
-  }
+  }, [session, perfilRlt]);
 
   // =========================================================
   // LOGOUT
@@ -135,6 +277,11 @@ export default function DashboardPage() {
 
   async function handleLogout() {
     await supabase.auth.signOut();
+
+    setSession(null);
+    setPerfilRlt(null);
+
+    router.replace("/acceso");
   }
 
   // =========================================================
@@ -158,31 +305,39 @@ export default function DashboardPage() {
         "Error cargando preguntas:",
         error
       );
+
       return;
     }
 
-    setPreguntasSinResponder(data || []);
+    setPreguntasSinResponder(
+      data || []
+    );
   }
 
   async function marcarComoAtendida(id) {
-    const { error } =
-      await supabase
-        .from("preguntas_sin_responder")
-        .update({
-          atendida: true,
-        })
-        .eq("id", id);
+    const {
+      error,
+    } = await supabase
+      .from("preguntas_sin_responder")
+      .update({
+        atendida: true,
+      })
+      .eq("id", id);
 
     if (error) {
       console.error(
         "Error actualizando pregunta:",
         error
       );
+
       return;
     }
 
-    setPreguntasSinResponder((prev) =>
-      prev.filter((p) => p.id !== id)
+    setPreguntasSinResponder(
+      (prev) =>
+        prev.filter(
+          (p) => p.id !== id
+        )
     );
   }
 
@@ -206,6 +361,7 @@ export default function DashboardPage() {
         "Error cargando alojamientos:",
         error
       );
+
       return;
     }
 
@@ -250,31 +406,46 @@ export default function DashboardPage() {
 
     setNuevoHotel({
       nombre: hotel.nombre || "",
+
       categoria:
         hotel.categoria ||
         "Alojamiento rural",
+
       descripcion:
         hotel.descripcion || "",
+
       descripcion_larga:
         hotel.descripcion_larga || "",
+
       ubicacion:
         hotel.ubicacion || "",
+
       instagram_url:
         hotel.instagram_url || "",
+
       whatsapp_url:
         hotel.whatsapp_url || "",
+
       servicios:
-        Array.isArray(hotel.servicios)
+        Array.isArray(
+          hotel.servicios
+        )
           ? hotel.servicios.join("\n")
           : "",
+
       imagenes:
-        Array.isArray(hotel.imagenes)
+        Array.isArray(
+          hotel.imagenes
+        )
           ? hotel.imagenes.join("\n")
           : "",
+
       indicaciones:
         hotel.indicaciones || "",
+
       precio_por_noche:
         hotel.precio_por_noche || "",
+
       capacidad_personas:
         hotel.capacidad_personas || "",
     });
@@ -290,7 +461,9 @@ export default function DashboardPage() {
   function convertirLista(texto) {
     return texto
       .split("\n")
-      .map((item) => item.trim())
+      .map((item) =>
+        item.trim()
+      )
       .filter(Boolean);
   }
 
@@ -338,14 +511,16 @@ export default function DashboardPage() {
         nuevoHotel.indicaciones.trim(),
 
       precio_por_noche:
-        nuevoHotel.precio_por_noche !== ""
+        nuevoHotel.precio_por_noche !==
+        ""
           ? Number(
               nuevoHotel.precio_por_noche
             )
           : null,
 
       capacidad_personas:
-        nuevoHotel.capacidad_personas !== ""
+        nuevoHotel.capacidad_personas !==
+        ""
           ? Number(
               nuevoHotel.capacidad_personas
             )
@@ -368,7 +543,9 @@ export default function DashboardPage() {
       resultado =
         await supabase
           .from("hoteles")
-          .insert([datosHotel])
+          .insert([
+            datosHotel,
+          ])
           .select();
     }
 
@@ -416,23 +593,30 @@ export default function DashboardPage() {
     prepararNuevoHotel();
   }
 
-  async function cambiarActivoHotel(hotel) {
+  async function cambiarActivoHotel(
+    hotel
+  ) {
     const nuevoEstado =
       !hotel.activo;
 
-    const { error } =
-      await supabase
-        .from("hoteles")
-        .update({
-          activo: nuevoEstado,
-        })
-        .eq("id", hotel.id);
+    const {
+      error,
+    } = await supabase
+      .from("hoteles")
+      .update({
+        activo: nuevoEstado,
+      })
+      .eq(
+        "id",
+        hotel.id
+      );
 
     if (error) {
       console.error(
         "Error cambiando estado:",
         error
       );
+
       return;
     }
 
@@ -466,7 +650,10 @@ export default function DashboardPage() {
     } = await supabase
       .from("solicitudes_rlt")
       .select("*")
-      .eq("estado", "PENDIENTE")
+      .eq(
+        "estado",
+        "PENDIENTE"
+      )
       .order("creado_en", {
         ascending: false,
       });
@@ -532,7 +719,9 @@ export default function DashboardPage() {
 
       (miembros || []).forEach(
         (miembro) => {
-          correos[miembro.id] =
+          correos[
+            miembro.id
+          ] =
             miembro.correo_google ||
             "";
         }
@@ -557,11 +746,11 @@ export default function DashboardPage() {
       return [];
     }
 
-    // -------------------------------------------------------
-    // NUEVO FORMATO: text[]
-    // -------------------------------------------------------
-
-    if (Array.isArray(tipoAsociado)) {
+    if (
+      Array.isArray(
+        tipoAsociado
+      )
+    ) {
       return tipoAsociado
         .map((tipo) =>
           String(tipo).trim()
@@ -569,19 +758,15 @@ export default function DashboardPage() {
         .filter(Boolean);
     }
 
-    // -------------------------------------------------------
-    // FORMATO ANTIGUO: texto
-    // -------------------------------------------------------
-
     const texto =
-      String(tipoAsociado).trim();
+      String(
+        tipoAsociado
+      ).trim();
 
     if (!texto) {
       return [];
     }
 
-    // Si PostgreSQL devuelve el arreglo como texto:
-    // {guianza,alojamiento_rural}
     if (
       texto.startsWith("{") &&
       texto.endsWith("}")
@@ -591,7 +776,10 @@ export default function DashboardPage() {
         .split(",")
         .map((tipo) =>
           tipo
-            .replace(/^"|"$/g, "")
+            .replace(
+              /^"|"$/g,
+              ""
+            )
             .trim()
         )
         .filter(Boolean);
@@ -695,7 +883,9 @@ export default function DashboardPage() {
         tipos
       );
 
-    if (lista.length === 0) {
+    if (
+      lista.length === 0
+    ) {
       return "Sin sector";
     }
 
@@ -744,12 +934,16 @@ export default function DashboardPage() {
       sectores
     );
 
-    if (sectores.length === 0) {
+    if (
+      sectores.length === 0
+    ) {
       setMensajeMiembros(
         "La solicitud no tiene un sector válido."
       );
 
-      setProcesandoSolicitud(null);
+      setProcesandoSolicitud(
+        null
+      );
 
       return;
     }
@@ -862,7 +1056,7 @@ export default function DashboardPage() {
     } = await supabase
       .from("solicitudes_rlt")
       .update({
-        estado: "APROBADA",
+        estado: "APROBADO",
       })
       .eq(
         "id",
@@ -926,7 +1120,7 @@ export default function DashboardPage() {
     } = await supabase
       .from("solicitudes_rlt")
       .update({
-        estado: "RECHAZADA",
+        estado: "RECHAZADO",
       })
       .eq(
         "id",
@@ -969,7 +1163,8 @@ export default function DashboardPage() {
     miembro
   ) {
     const nuevoEstado =
-      miembro.estado === "ACTIVO"
+      miembro.estado ===
+      "ACTIVO"
         ? "INACTIVO"
         : "ACTIVO";
 
@@ -1014,7 +1209,12 @@ export default function DashboardPage() {
     );
 
     setMensajeMiembros(
-      `Miembro ${nuevoEstado === "ACTIVO" ? "activado" : "desactivado"} correctamente.`
+      `Miembro ${
+        nuevoEstado ===
+        "ACTIVO"
+          ? "activado"
+          : "desactivado"
+      } correctamente.`
     );
   }
 
@@ -1057,6 +1257,7 @@ export default function DashboardPage() {
       .update({
         correo_google:
           correo || null,
+
         actualizado_en:
           new Date().toISOString(),
       })
@@ -1075,7 +1276,9 @@ export default function DashboardPage() {
         `No se pudo guardar el correo Google: ${error.message}`
       );
 
-      setGuardandoMiembro(null);
+      setGuardandoMiembro(
+        null
+      );
 
       return;
     }
@@ -1097,99 +1300,36 @@ export default function DashboardPage() {
       "Correo Google guardado correctamente."
     );
 
-    setGuardandoMiembro(null);
+    setGuardandoMiembro(
+      null
+    );
   }
 
   // =========================================================
-  // CARGANDO SESIÓN
+  // CARGANDO
   // =========================================================
 
-  if (cargandoSesion) {
+  if (
+    cargandoSesion ||
+    cargandoPerfil
+  ) {
     return (
       <main className="dashboard-page">
         <div className="dashboard-container">
-          <p>Cargando...</p>
+          <p>
+            Verificando acceso...
+          </p>
         </div>
       </main>
     );
   }
 
   // =========================================================
-  // LOGIN
+  // SI POR ALGÚN MOTIVO NO HAY SESIÓN
   // =========================================================
 
-  if (!session) {
-    return (
-      <main className="dashboard-page">
-        <div className="dashboard-container">
-
-          <div className="dashboard-login">
-
-            <h1>
-              Panel administrativo
-            </h1>
-
-            <p>
-              Ingresa para administrar
-              el contenido de Turismo
-              San Rafael.
-            </p>
-
-            <form
-              onSubmit={handleLogin}
-            >
-
-              <div>
-                <label>
-                  Correo electrónico
-                </label>
-
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) =>
-                    setEmail(
-                      e.target.value
-                    )
-                  }
-                  required
-                />
-              </div>
-
-              <div>
-                <label>
-                  Contraseña
-                </label>
-
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) =>
-                    setPassword(
-                      e.target.value
-                    )
-                  }
-                  required
-                />
-              </div>
-
-              {errorLogin && (
-                <p className="error-message">
-                  {errorLogin}
-                </p>
-              )}
-
-              <button type="submit">
-                Ingresar
-              </button>
-
-            </form>
-
-          </div>
-
-        </div>
-      </main>
-    );
+  if (!session || !perfilRlt) {
+    return null;
   }
 
   // =========================================================
@@ -1220,6 +1360,15 @@ export default function DashboardPage() {
             <p>
               Gestión del contenido
               de Turismo San Rafael.
+            </p>
+
+            <p>
+              Sesión:
+              {" "}
+              <strong>
+                {perfilRlt.nombre ||
+                  perfilRlt.correo}
+              </strong>
             </p>
 
           </div>

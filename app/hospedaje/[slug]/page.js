@@ -11,15 +11,9 @@ export default function HospedajeDetallePage() {
 
   const [alojamiento, setAlojamiento] = useState(null);
   const [alojamientos, setAlojamientos] = useState([]);
-
   const [indiceActual, setIndiceActual] = useState(-1);
-
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
-
-  /* =====================================================
-     CARGAR ALOJAMIENTO Y LISTADO
-  ===================================================== */
 
   useEffect(() => {
     if (!slug) return;
@@ -28,23 +22,34 @@ export default function HospedajeDetallePage() {
       setCargando(true);
       setError(null);
 
-      /* =================================================
-         ALOJAMIENTO ACTUAL
-      ================================================= */
-
       const {
         data: alojamientoActual,
         error: errorAlojamiento,
       } = await supabase
         .from("hoteles")
-        .select("*")
+        .select(`
+          id,
+          creado_en,
+          nombre,
+          descripcion,
+          activo,
+          instagram_url,
+          whatsapp_url,
+          latitud,
+          longitud,
+          destacado,
+          estado_verificacion,
+          fecha_ultima_verificacion,
+          slug,
+          tipo_alojamiento,
+          sitio_web_url,
+          mapa_url,
+          descripcion_corta,
+          asociado_red
+        `)
         .eq("slug", slug)
         .eq("activo", true)
         .maybeSingle();
-
-      /* =================================================
-         LISTADO PARA NAVEGACIÓN
-      ================================================= */
 
       const {
         data: listaAlojamientos,
@@ -59,12 +64,11 @@ export default function HospedajeDetallePage() {
         `)
         .eq("activo", true);
 
-      /* =================================================
-         VALIDAR ALOJAMIENTO
-      ================================================= */
-
       if (errorAlojamiento) {
-        console.error(errorAlojamiento);
+        console.error(
+          "Error cargando alojamiento:",
+          errorAlojamiento
+        );
 
         setError(
           "No fue posible cargar este alojamiento."
@@ -85,25 +89,18 @@ export default function HospedajeDetallePage() {
 
       setAlojamiento(alojamientoActual);
 
-      /* =================================================
-         ORDEN DE LOS ALOJAMIENTOS
-
-         1. Asociados primero
-         2. Después los demás
-         3. Cada grupo en orden alfabético
-      ================================================= */
-
       if (errorLista) {
-        console.error(errorLista);
+        console.error(
+          "Error cargando lista de alojamientos:",
+          errorLista
+        );
 
         setAlojamientos([]);
         setIndiceActual(-1);
       } else {
-
         const listaOrdenada = (
           listaAlojamientos || []
         ).sort((a, b) => {
-
           if (a.asociado_red !== b.asociado_red) {
             return a.asociado_red ? -1 : 1;
           }
@@ -131,16 +128,9 @@ export default function HospedajeDetallePage() {
     }
 
     cargarAlojamiento();
-
   }, [slug]);
 
-
-  /* =====================================================
-     IR AL ALOJAMIENTO ANTERIOR
-  ===================================================== */
-
   function irAnterior() {
-
     if (indiceActual <= 0) {
       return;
     }
@@ -155,13 +145,7 @@ export default function HospedajeDetallePage() {
     }
   }
 
-
-  /* =====================================================
-     IR AL SIGUIENTE ALOJAMIENTO
-  ===================================================== */
-
   function irSiguiente() {
-
     if (
       indiceActual < 0 ||
       indiceActual >= alojamientos.length - 1
@@ -179,11 +163,6 @@ export default function HospedajeDetallePage() {
     }
   }
 
-
-  /* =====================================================
-     CARGANDO
-  ===================================================== */
-
   if (cargando) {
     return (
       <main className="ficha-alojamiento">
@@ -192,28 +171,20 @@ export default function HospedajeDetallePage() {
     );
   }
 
-
-  /* =====================================================
-     ERROR
-  ===================================================== */
-
   if (error || !alojamiento) {
     return (
       <main className="ficha-alojamiento">
-
         <div
           style={{
             marginBottom: "1.5rem",
           }}
         >
-
           <a
             href="/hospedajes"
             className="boton"
           >
             ← Volver a alojamientos
           </a>
-
         </div>
 
         <h1>
@@ -224,15 +195,9 @@ export default function HospedajeDetallePage() {
           {error ||
             "No encontramos la información solicitada."}
         </p>
-
       </main>
     );
   }
-
-
-  /* =====================================================
-     ESTADO DE NAVEGACIÓN
-  ===================================================== */
 
   const hayAnterior =
     indiceActual > 0;
@@ -241,40 +206,23 @@ export default function HospedajeDetallePage() {
     indiceActual >= 0 &&
     indiceActual < alojamientos.length - 1;
 
-
-  /* =====================================================
-     FICHA
-  ===================================================== */
-
   return (
     <main className="ficha-alojamiento">
-
-      {/* =================================================
-          VOLVER A ALOJAMIENTOS
-      ================================================= */}
 
       <div
         style={{
           marginBottom: "1.5rem",
         }}
       >
-
         <a
           href="/hospedajes"
           className="boton"
         >
           ← Volver a alojamientos
         </a>
-
       </div>
 
-
-      {/* =================================================
-          ENCABEZADO
-      ================================================= */}
-
       <section className="ficha-encabezado">
-
         <div>
 
           <span className="eyebrow">
@@ -291,18 +239,7 @@ export default function HospedajeDetallePage() {
           </p>
 
         </div>
-
       </section>
-
-
-      {/* =================================================
-          GALERÍA CON BOTONES LATERALES
-
-          IMPORTANTE:
-          Los botones están en posición absoluta.
-          NO modifican el tamaño ni la distribución
-          de la galería.
-      ================================================= */}
 
       <div
         style={{
@@ -311,10 +248,6 @@ export default function HospedajeDetallePage() {
           marginBottom: "2.5rem",
         }}
       >
-
-        {/* =================================================
-            BOTÓN ANTERIOR
-        ================================================= */}
 
         <button
           type="button"
@@ -331,46 +264,34 @@ export default function HospedajeDetallePage() {
             left: "-75px",
             top: "50%",
             transform: "translateY(-50%)",
-
             width: "52px",
             height: "52px",
-
             borderRadius: "50%",
-
             border:
               "1px solid rgba(31, 77, 58, 0.20)",
-
             background:
               hayAnterior
                 ? "#ffffff"
                 : "#eeeeee",
-
             color:
               hayAnterior
                 ? "#1f4d3a"
                 : "#9ca3af",
-
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-
             fontSize: "1.7rem",
-
             cursor:
               hayAnterior
                 ? "pointer"
                 : "not-allowed",
-
             opacity:
               hayAnterior
                 ? 1
                 : 0.45,
-
             boxShadow:
               "0 4px 12px rgba(0,0,0,0.10)",
-
             zIndex: 5,
-
             transition:
               "all 0.2s ease",
           }}
@@ -378,21 +299,9 @@ export default function HospedajeDetallePage() {
           ←
         </button>
 
-
-        {/* =================================================
-            GALERÍA ORIGINAL
-
-            NO SE MODIFICA
-        ================================================= */}
-
         <GaleriaAlojamiento
           alojamiento={alojamiento}
         />
-
-
-        {/* =================================================
-            BOTÓN SIGUIENTE
-        ================================================= */}
 
         <button
           type="button"
@@ -409,45 +318,33 @@ export default function HospedajeDetallePage() {
             right: "-75px",
             top: "50%",
             transform: "translateY(-50%)",
-
             width: "52px",
             height: "52px",
-
             borderRadius: "50%",
-
             border: "none",
-
             background:
               haySiguiente
                 ? "#c99a2e"
                 : "#eeeeee",
-
             color:
               haySiguiente
                 ? "#ffffff"
                 : "#9ca3af",
-
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-
             fontSize: "1.7rem",
-
             cursor:
               haySiguiente
                 ? "pointer"
                 : "not-allowed",
-
             opacity:
               haySiguiente
                 ? 1
                 : 0.45,
-
             boxShadow:
               "0 4px 12px rgba(0,0,0,0.10)",
-
             zIndex: 5,
-
             transition:
               "all 0.2s ease",
           }}
@@ -457,16 +354,7 @@ export default function HospedajeDetallePage() {
 
       </div>
 
-
-      {/* =================================================
-          CONTENIDO
-      ================================================= */}
-
       <section className="ficha-contenido">
-
-        {/* =================================================
-            DESCRIPCIÓN
-        ================================================= */}
 
         <div className="ficha-descripcion">
 
@@ -480,22 +368,14 @@ export default function HospedajeDetallePage() {
           </h2>
 
           {alojamiento.descripcion && (
-
             <p>
               {alojamiento.descripcion}
             </p>
-
           )}
-
-
-          {/* =================================================
-              CARACTERÍSTICAS
-          ================================================= */}
 
           <div className="caracteristicas-alojamiento">
 
             {alojamiento.tipo_alojamiento && (
-
               <div className="caracteristica">
 
                 <span>
@@ -511,32 +391,7 @@ export default function HospedajeDetallePage() {
                 </small>
 
               </div>
-
             )}
-
-
-            {alojamiento.capacidad_personas && (
-
-              <div className="caracteristica">
-
-                <span>
-                  👥
-                </span>
-
-                <strong>
-                  Capacidad
-                </strong>
-
-                <small>
-                  Hasta{" "}
-                  {alojamiento.capacidad_personas}{" "}
-                  personas
-                </small>
-
-              </div>
-
-            )}
-
 
             <div className="caracteristica">
 
@@ -558,11 +413,6 @@ export default function HospedajeDetallePage() {
 
         </div>
 
-
-        {/* =================================================
-            CONTACTO
-        ================================================= */}
-
         <aside className="ficha-contacto">
 
           <h3>
@@ -575,69 +425,39 @@ export default function HospedajeDetallePage() {
             sobre disponibilidad, precios y experiencias.
           </p>
 
-
-          {/* =================================================
-              INSTAGRAM
-          ================================================= */}
-
           {alojamiento.instagram_url && (
-
             <a
-              href={
-                alojamiento.instagram_url
-              }
+              href={alojamiento.instagram_url}
               target="_blank"
               rel="noopener noreferrer"
               className="boton-contacto boton-instagram"
             >
               📸 Instagram
             </a>
-
           )}
 
-
-          {/* =================================================
-              WHATSAPP
-          ================================================= */}
-
           {alojamiento.whatsapp_url && (
-
             <a
-              href={
-                alojamiento.whatsapp_url
-              }
+              href={alojamiento.whatsapp_url}
               target="_blank"
               rel="noopener noreferrer"
               className="boton-contacto boton-whatsapp"
             >
               💬 WhatsApp
             </a>
-
           )}
 
-
-          {/* =================================================
-              SITIO WEB
-          ================================================= */}
-
           {alojamiento.sitio_web_url ? (
-
             <a
-              href={
-                alojamiento.sitio_web_url
-              }
+              href={alojamiento.sitio_web_url}
               target="_blank"
               rel="noopener noreferrer"
               className="boton-contacto boton-mapa"
             >
               🌐 Sitio web
             </a>
-
           ) : (
-
-            <div
-              className="sitio-web-no-disponible"
-            >
+            <div className="sitio-web-no-disponible">
 
               <span>
                 🌐 Sitio web
@@ -648,37 +468,22 @@ export default function HospedajeDetallePage() {
               </small>
 
             </div>
-
           )}
 
-
-          {/* =================================================
-              MAPA
-          ================================================= */}
-
           {alojamiento.mapa_url && (
-
             <a
-              href={
-                alojamiento.mapa_url
-              }
+              href={alojamiento.mapa_url}
               target="_blank"
               rel="noopener noreferrer"
               className="boton-contacto boton-mapa"
             >
               🗺️ Cómo llegar
             </a>
-
           )}
 
         </aside>
 
       </section>
-
-
-      {/* =================================================
-          UBICACIÓN
-      ================================================= */}
 
       <section className="ubicacion-ficha">
 
@@ -698,11 +503,6 @@ export default function HospedajeDetallePage() {
             recorrido desde el casco urbano de San Rafael.
           </p>
 
-
-          {/* =================================================
-              DATOS DE RUTA
-          ================================================= */}
-
           <div className="datos-ruta">
 
             <div>
@@ -717,7 +517,6 @@ export default function HospedajeDetallePage() {
 
             </div>
 
-
             <div>
 
               <strong>
@@ -730,7 +529,6 @@ export default function HospedajeDetallePage() {
 
             </div>
 
-
             <div>
 
               <strong>
@@ -742,7 +540,6 @@ export default function HospedajeDetallePage() {
               </span>
 
             </div>
-
 
             <div>
 
@@ -758,32 +555,18 @@ export default function HospedajeDetallePage() {
 
           </div>
 
-
-          {/* =================================================
-              BOTÓN GOOGLE MAPS
-          ================================================= */}
-
           {alojamiento.mapa_url && (
-
             <a
-              href={
-                alojamiento.mapa_url
-              }
+              href={alojamiento.mapa_url}
               target="_blank"
               rel="noopener noreferrer"
               className="boton boton-primario boton-ruta"
             >
               Abrir ubicación en Google Maps
             </a>
-
           )}
 
         </div>
-
-
-        {/* =================================================
-            MAPA
-        ================================================= */}
 
         <div className="mapa-contenedor">
 
@@ -825,24 +608,16 @@ function GaleriaAlojamiento({ alojamiento }) {
         : null
     );
 
-
   useEffect(() => {
-
     setFotoPrincipal(
       fotos.length > 0
         ? fotos[0]
         : null
     );
-
   }, [alojamiento.id]);
-
 
   return (
     <section className="galeria-ficha">
-
-      {/* =====================================================
-          FOTO PRINCIPAL
-      ===================================================== */}
 
       <div className="foto-principal">
 
@@ -873,11 +648,6 @@ function GaleriaAlojamiento({ alojamiento }) {
         )}
 
       </div>
-
-
-      {/* =====================================================
-          TODAS LAS MINIATURAS
-      ===================================================== */}
 
       {fotos.length > 1 && (
 
@@ -941,24 +711,15 @@ function obtenerFotos(alojamiento) {
      YAKUTOUR
   ========================================================== */
 
-  if (
-    nombre?.includes("yakutour")
-  ) {
+  if (nombre?.includes("yakutour")) {
 
     return [
-
       "/alojamientos/yakutour/yakutour-1.jpeg",
-
       "/alojamientos/yakutour/yakutour-2.jpeg",
-
       "/alojamientos/yakutour/yakutour-3.jpeg",
-
       "/alojamientos/yakutour/yakutour-4.jpeg",
-
       "/alojamientos/yakutour/yakutour-5.jpg",
-
       "/alojamientos/yakutour/yakutour-6.jpg",
-
     ];
   }
 
@@ -967,41 +728,124 @@ function obtenerFotos(alojamiento) {
      CUEVA DE MORGAN
   ========================================================== */
 
-  if (
-    nombre?.includes("cueva de morgan")
-  ) {
+  if (nombre?.includes("cueva de morgan")) {
 
     return [
-
       "/alojamientos/cueva-de-morgan/cueva-de-morgan-1.jpg",
-
       "/alojamientos/cueva-de-morgan/cueva-de-morgan-2.jpg",
-
       "/alojamientos/cueva-de-morgan/cueva-de-morgan-3.jpg",
-
       "/alojamientos/cueva-de-morgan/cueva-de-morgan-4.jpg",
-
       "/alojamientos/cueva-de-morgan/cueva-de-morgan-5.jpg",
-
       "/alojamientos/cueva-de-morgan/cueva-de-morgan-6.jpg",
-
     ];
   }
 
 
   /* ==========================================================
-     OTROS ALOJAMIENTOS
+     AGUA DULCE
   ========================================================== */
 
-  if (
-    alojamiento.imagen_url
-  ) {
+  if (nombre?.includes("agua dulce")) {
 
     return [
-      alojamiento.imagen_url
+      "/alojamientos/agua-dulce/agua-dulce-1.png",
+      "/alojamientos/agua-dulce/agua-dulce-2.jpg",
+      "/alojamientos/agua-dulce/agua-dulce-3.jpg",
+      "/alojamientos/agua-dulce/agua-dulce-4.jpg",
+      "/alojamientos/agua-dulce/agua-dulce-5.jpg",
+      "/alojamientos/agua-dulce/agua-dulce-6.jpg",
     ];
-
   }
+
+
+  /* ==========================================================
+     CABAÑAS RIOVIVO
+  ========================================================== */
+
+  if (nombre?.includes("cabanas riovivo")) {
+
+    return [
+      "/alojamientos/rio-vivo/rio-vivo-1.jpg",
+      "/alojamientos/rio-vivo/rio-vivo-2.jpg",
+      "/alojamientos/rio-vivo/rio-vivo-3.jpg",
+      "/alojamientos/rio-vivo/rio-vivo-4.jpg",
+      "/alojamientos/rio-vivo/rio-vivo-5.jpg",
+      "/alojamientos/rio-vivo/rio-vivo-6.png",
+    ];
+  }
+
+
+  /* ==========================================================
+     CON OLOR A CACAO
+  ========================================================== */
+
+  if (nombre?.includes("con olor a cacao")) {
+
+    return [
+      "/alojamientos/con-olor-a-cacao/con-olor-a-cacao-1.jpg",
+      "/alojamientos/con-olor-a-cacao/con-olor-a-cacao-2.png",
+      "/alojamientos/con-olor-a-cacao/con-olor-a-cacao-3.jpg",
+      "/alojamientos/con-olor-a-cacao/con-olor-a-cacao-4.jpg",
+      "/alojamientos/con-olor-a-cacao/con-olor-a-cacao-5.jpg",
+      "/alojamientos/con-olor-a-cacao/con-olor-a-cacao-6.jpg",
+    ];
+  }
+
+
+  /* ==========================================================
+     ECOLODGE RAICES
+  ========================================================== */
+
+  if (nombre?.includes("ecolodge raices")) {
+
+    return [
+      "/alojamientos/ecolodge-raices/raices-1.jpg",
+      "/alojamientos/ecolodge-raices/raices-2.png",
+      "/alojamientos/ecolodge-raices/raices-3.jpg",
+      "/alojamientos/ecolodge-raices/raices-4.png",
+      "/alojamientos/ecolodge-raices/raices-5.png",
+      "/alojamientos/ecolodge-raices/raices-6.png",
+    ];
+  }
+
+
+  /* ==========================================================
+     PALAGUA LODGE
+  ========================================================== */
+
+  if (nombre?.includes("palagua lodge")) {
+
+    return [
+      "/alojamientos/palagua-lodge/palagua-1.png",
+      "/alojamientos/palagua-lodge/palagua-2.png",
+      "/alojamientos/palagua-lodge/palagua-3.png",
+      "/alojamientos/palagua-lodge/palagua-4.png",
+      "/alojamientos/palagua-lodge/palagua-5.jpg",
+      "/alojamientos/palagua-lodge/palagua-6.png",
+    ];
+  }
+
+
+  /* ==========================================================
+     ECOS DEL RIO
+  ========================================================== */
+
+  if (nombre?.includes("ecos del rio")) {
+
+    return [
+      "/alojamientos/ecos-del-rio/ecos-del-rio-1.jpg",
+      "/alojamientos/ecos-del-rio/ecos-del-rio-2.jpg",
+      "/alojamientos/ecos-del-rio/ecos-del-rio-3.jpg",
+      "/alojamientos/ecos-del-rio/ecos-del-rio-4.jpg",
+      "/alojamientos/ecos-del-rio/ecos-del-rio-5.jpg",
+      "/alojamientos/ecos-del-rio/ecos-del-rio-6.jpg",
+    ];
+  }
+
+
+  /* ==========================================================
+     SIN FOTOS
+  ========================================================== */
 
   return [];
 }
